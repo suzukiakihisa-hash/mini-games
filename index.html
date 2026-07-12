@@ -461,7 +461,7 @@ const META = {
   zombie: {ico:'🧟', nm:'ゾンビロード',     ds:'ゲートで兵士を増やして大群を撃て！',       color:'#4ade80'},
   dada:   {ico:'🥷', nm:'サバイブヒーロー', ds:'動いて避けて自動攻撃！大群から生きのびろ', color:'#f472b6'},
   cell:   {ico:'🦠', nm:'セルサバイバー',   ds:'回転して迫るウイルスをビームで焼きはらえ', color:'#34d399'},
-  snow:   {ico:'❄️', nm:'ふぶきサバイバル', ds:'たき火を絶やさず吹雪の日々を生きのびろ',   color:'#7dd3fc'},
+  snow:   {ico:'❄️', nm:'ふぶきサバイバル', ds:'雪原で薪あつめ&シロクマ狩り！たき火を守れ', color:'#7dd3fc'},
 };
 const GAME_ORDER = ['run','water','pin','merge','zombie','dada','cell','snow'];
 
@@ -1936,222 +1936,368 @@ const ZombieGame = {
 };
 
 /* ============================================================
-   ゲーム6: ふぶきサバイバル(DOM・経営サバイバル)
-   人員配分とたき火で吹雪の日々を生きのびる。
+   ゲーム6: ふぶきサバイバル(Canvas・アクションサバイバル)
+   雪原を歩いて薪あつめ→たき火に補給。シロクマを狩って肉に。
+   吹雪の夜をたき火のそばで耐えて、指定日数を生きのびる。
    ============================================================ */
 const SnowGame = {
   stages: [
-    {days:3, people:4, wood:16, food:14, req:d => 2},
-    {days:5, people:4, wood:12, food:10, req:d => d >= 3 ? 3 : 2},
-    {days:7, people:5, wood:10, food:9,  req:d => Math.min(2 + Math.floor(d/2), 4)},
-  ],
-  events: [
-    {t:'🚶 旅人がたどり着いた', d:'凍えた旅人が仲間に入りたがっている。',
-     a:{lbl:'むかえ入れる(👥+1 / 🍖-6)', fn:s => { s.people++; s.food = Math.max(0, s.food-6); }},
-     b:{lbl:'ことわる', fn:s => {}}},
-    {t:'🛷 行商人が来た', d:'薪と食料を交換してくれるらしい。',
-     a:{lbl:'🌲8 を 🍖8 に交換', fn:s => { if (s.wood >= 8) { s.wood -= 8; s.food += 8; } }},
-     b:{lbl:'見送る', fn:s => {}}},
-    {t:'🐺 オオカミの遠ぼえ', d:'群れが近づいている。どうする？',
-     a:{lbl:'迎え撃つ(かり係がいれば 🍖+8)', fn:s => { if (s.hunt >= 1) s.food += 8; else s.people--; }},
-     b:{lbl:'身をひそめる(🍖-3)', fn:s => { s.food = Math.max(0, s.food-3); }}},
-    {t:'🏚 古い小屋を発見', d:'雪に埋もれた小屋がある。木材が取れそうだ。',
-     a:{lbl:'解体する(🌲+8 / 🔥Lv-1)', fn:s => { s.wood += 8; s.fire = Math.max(0, s.fire-1); }},
-     b:{lbl:'無視する', fn:s => {}}},
-    {t:'🌌 オーロラの夜', d:'夜空にオーロラがかがやき、みんなの心があたたまった。',
-     a:{lbl:'みんなでながめる(🌲+2 🍖+2)', fn:s => { s.wood += 2; s.food += 2; }},
-     b:{lbl:'すぐ休む', fn:s => {}}},
+    {days:2, bears:1, bearHp:8,  blizzLen:7},
+    {days:3, bears:2, bearHp:10, blizzLen:9},
+    {days:4, bears:3, bearHp:12, blizzLen:10},
   ],
   create(host, stage, api){
     const cfg = this.stages[stage];
-    const TICK = 1.5, TPD = 10;                  // 1日=10ティック
-    const s = {people:cfg.people, wood:cfg.wood, food:cfg.food, fire:2,
-               lumber:1, hunt:1, day:1, tick:0, hunger:0, freeze:0};
-    let over = false, paused = false, raf = 0, tPrev = 0, acc = 0, chopCd = 0;
-    let blizzStart = ri(5,7);
-    const eventPool = this.events.slice();
+    const W = 360, H = 560;
+    const {cv, ctx, toLocal, destroy:dcv} = makeCanvas(host, W, H);
+    const bar = (id, color) => `<span style="display:inline-block;width:42px;height:8px;background:#0b1324;border-radius:99px;overflow:hidden;vertical-align:middle;margin-left:4px"><span id="${id}" style="display:block;height:100%;width:100%;background:${color}"></span></span>`;
+    const hud = document.createElement('div'); hud.className = 'game-hud';
+    hud.innerHTML = `<span>❤ <b id="sn-hp">100</b></span>
+      <span>🌡${bar('sn-warm','#38bdf8')}</span>
+      <span>🔥${bar('sn-fuel','#fb923c')}</span>
+      <span>🌲 <b id="sn-wood">4</b></span><span>🍖 <b id="sn-food">6</b></span>
+      <span>☀ <b id="sn-day">1</b>/${cfg.days}</span>`;
+    host.appendChild(hud);
+    api.hint('ドラッグで移動！🌲で薪→🔥に補給。🐻‍❄️は狩って肉に！');
+
+    const DAYLEN = 35;
+    const FIRE = {x:W/2, y:H/2 - 20};
+    const P = {x:W/2, y:H/2 + 70, hp:100, warm:100, face:1};
+    let wood = 4, food = 6, fuel = 70;
+    let t = 0, day = 1, dayT = 0, foodT = 0;
+    let blizzT = rnd(12, 20);
+    let over = false, raf = 0, tPrev = 0;
+    let atkCd = 0, feedCd = 0, kills = 0;
+    let lastAtk = null;                        // 槍エフェクト {x,y,t}
+    const respawnQ = [];                       // [残り秒, 'bear'|'rabbit']
+    const parts = makeParticles(), floats = makeFloats(), shake = makeShake();
     const timers = [];
 
-    const wrap = document.createElement('div'); wrap.className = 'sn-wrap';
-    wrap.innerHTML = `
-      <div class="sn-stats">
-        <div class="sn-stat">👥 <span id="sn-p"></span><small>生存者</small></div>
-        <div class="sn-stat">🔥 Lv<span id="sn-f"></span><small>たき火</small></div>
-        <div class="sn-stat">🌲 <span id="sn-w"></span><small>まき</small></div>
-        <div class="sn-stat">🍖 <span id="sn-fd"></span><small>食料</small></div>
-      </div>
-      <div class="sn-day"><span id="sn-d"></span><div class="sn-daybar"><span id="sn-db"></span></div><span id="sn-ph"></span></div>
-      <div class="sn-warn" id="sn-warn"></div>
-      <div class="sn-scene">
-        <canvas class="sn-snow" id="sn-snow"></canvas>
-        <span class="sn-fire" id="sn-fire">🔥</span>
-        <div class="sn-people" id="sn-ppl"></div>
-        <div class="sn-cold" id="sn-cold"></div>
-      </div>
-      <div class="sn-ctrl">
-        <div class="sn-row"><span class="lbl">🌲 きこり係</span>
-          <button class="sn-btn" id="sn-lm">－</button><span class="val" id="sn-lv"></span><button class="sn-btn" id="sn-lp">＋</button></div>
-        <div class="sn-row"><span class="lbl">🍖 かり係</span>
-          <button class="sn-btn" id="sn-hm">－</button><span class="val" id="sn-hv"></span><button class="sn-btn" id="sn-hp">＋</button></div>
-        <div class="sn-row"><span class="lbl">🔥 たき火(＋は🌲4消費)</span>
-          <button class="sn-btn" id="sn-fm">－</button><span class="val" id="sn-fv"></span><button class="sn-btn" id="sn-fp">＋</button></div>
-        <button class="sn-chop" id="sn-chop">🪓 まき割り(+1🌲)</button>
-      </div>`;
-    host.appendChild(wrap);
-    api.hint('たき火を絶やすな！吹雪の前にLvを上げろ');
-
-    // 雪(canvas)
-    const scv = wrap.querySelector('#sn-snow');
-    const sctx = scv.getContext('2d');
-    const flakes = Array.from({length:45}, () => [Math.random(), Math.random(), rnd(0.5,1.5)]);
-    function sizeSnow(){
-      const sc = wrap.querySelector('.sn-scene');
-      scv.width = sc.clientWidth; scv.height = sc.clientHeight;
-    }
-    const ro = new ResizeObserver(sizeSnow); ro.observe(wrap);
-    timers.push(setTimeout(sizeSnow, 50));
-
-    const el = id => wrap.querySelector('#sn-'+id);
-    const isBlizz = () => s.tick >= blizzStart && s.tick < blizzStart + 3;
-    const isWarn  = () => s.tick >= blizzStart - 2 && s.tick < blizzStart;
-    function req(){ return cfg.req(s.day); }
-    function render(){
-      el('p').textContent = s.people;
-      el('f').textContent = s.fire;
-      el('w').textContent = Math.floor(s.wood);
-      el('fd').textContent = Math.floor(s.food);
-      el('d').textContent = `Day ${Math.min(s.day, cfg.days)} / ${cfg.days}`;
-      el('db').style.width = (s.tick / TPD * 100) + '%';
-      el('ph').textContent = s.tick < 7 ? '☀' : '🌙';
-      el('lv').textContent = s.lumber;
-      el('hv').textContent = s.hunt;
-      el('fv').textContent = s.fire;
-      el('fire').style.fontSize = (26 + s.fire * 8) + 'px';
-      el('fire').style.filter = `drop-shadow(0 0 ${8 + s.fire*5}px rgba(251,146,60,.9))`;
-      el('ppl').textContent = '🧍'.repeat(Math.max(s.people, 0));
-      const w = el('warn');
-      if (isBlizz()) {
-        const bad = s.fire < req();
-        w.textContent = bad ? `🌨 吹雪！たき火Lv${req()}必要——こごえている！` : '🌨 吹雪が過ぎるのを待て…';
-        w.className = 'sn-warn active';
-        el('cold').style.opacity = bad ? 0.85 : 0.35;
-      } else if (isWarn()) {
-        w.textContent = `⚠ 吹雪接近！たき火Lv${req()}以上にしろ！`;
-        w.className = 'sn-warn active';
-        el('cold').style.opacity = 0.1;
-      } else {
-        w.textContent = ''; w.className = 'sn-warn';
-        el('cold').style.opacity = 0;
+    // 樹木配置(たき火から離す)
+    const trees = [];
+    for (let i=0; i<8 && trees.length<7; i++){
+      for (let tr=0; tr<25; tr++){
+        const x = rnd(30, W-30), y = rnd(40, H-40);
+        if (Math.hypot(x-FIRE.x, y-FIRE.y) < 110) continue;
+        if (trees.some(o => Math.hypot(o.x-x, o.y-y) < 56)) continue;
+        trees.push({x, y, left:4, prog:0});
+        break;
       }
     }
-    function toast(msg){
-      const h = document.createElement('div'); h.className = 'hint-bar'; h.textContent = msg;
-      host.appendChild(h);
-      timers.push(setTimeout(() => h.remove(), 3100));
+    // 動物
+    const bears = [], rabbits = [];
+    function edgePos(){
+      const s = ri(0,3);
+      if (s===0) return [rnd(20,W-20), 20];
+      if (s===1) return [rnd(20,W-20), H-20];
+      if (s===2) return [20, rnd(20,H-20)];
+      return [W-20, rnd(20,H-20)];
     }
-    function losePerson(msg){
-      s.people--;
-      s.lumber = Math.min(s.lumber, s.people);
-      s.hunt = Math.min(s.hunt, Math.max(0, s.people - s.lumber));
-      api.sound('freeze');
-      toast(msg);
-      if (s.people <= 0) {
-        over = true;
-        timers.push(setTimeout(() => api.end({win:false, msg:`Day ${s.day} で全員たおれてしまった…`}), 700));
-      }
+    function spawnBear(){
+      const [x,y] = edgePos();
+      bears.push({x, y, hp:cfg.bearHp, max:cfg.bearHp, hitCd:0, wa:rnd(0,7), flash:0});
     }
-    function doTick(){
-      s.wood += s.lumber * 1.1;
-      s.food += s.hunt * 0.9;
-      s.food -= s.people * 0.35;
-      if (s.food < 0) { s.food = 0; s.hunger++; } else s.hunger = Math.max(0, s.hunger - 1);
-      if (s.hunger >= 3) { s.hunger = 0; losePerson('🍖 食料ぎれ！1人たおれた…'); if (over) return; }
-      s.wood -= s.fire * 0.5;
-      if (s.wood < 0) { s.wood = 0; if (s.fire > 0) { s.fire--; toast('🌲 まきギレ！たき火が弱まった'); api.sound('hit'); } }
-      if (isBlizz() && s.fire < req()) {
-        s.freeze++;
-        if (s.freeze >= 2) { s.freeze = 0; losePerson('❄ 1人こごえてしまった…'); if (over) return; }
-      } else s.freeze = 0;
-      s.tick++;
-      if (s.tick >= TPD) {
-        s.day++; s.tick = 0; blizzStart = ri(5,7);
-        if (s.day > cfg.days) {
-          over = true;
-          timers.push(setTimeout(() => api.end({win:true, msg:`生存者 ${s.people}人 で ${cfg.days}日間を生きのびた！`}), 500));
-          return;
-        }
+    function spawnRabbit(){
+      const [x,y] = edgePos();
+      rabbits.push({x, y, wa:rnd(0,7)});
+    }
+    for (let i=0;i<cfg.bears;i++) spawnBear();
+    for (let i=0;i<3;i++) spawnRabbit();
+    // 雪
+    const flakes = Array.from({length:55}, () => [Math.random(), Math.random(), rnd(0.6,1.6)]);
+
+    let joy = null;
+    const ac = new AbortController();
+    cv.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      const p = toLocal(e);
+      joy = {ox:p.x, oy:p.y, dx:0, dy:0};
+    }, {signal:ac.signal});
+    cv.addEventListener('pointermove', e => {
+      if (!joy) return;
+      const p = toLocal(e);
+      joy.dx = clamp(p.x - joy.ox, -46, 46);
+      joy.dy = clamp(p.y - joy.oy, -46, 46);
+    }, {signal:ac.signal});
+    window.addEventListener('pointerup', () => joy = null, {signal:ac.signal});
+
+    const isBlizz = () => dayT > blizzT && dayT < blizzT + cfg.blizzLen;
+    const isWarn  = () => dayT > blizzT - 4 && dayT <= blizzT;
+    const distFire = () => Math.hypot(P.x-FIRE.x, P.y-FIRE.y);
+
+    function finish(win, msg){
+      if (over) return; over = true;
+      api.sound(win ? 'collect' : 'fail');
+      timers.push(setTimeout(() => api.end({win, msg}), win ? 550 : 750));
+    }
+    function hud$(id, v){ $('#sn-'+id).textContent = v; }
+    function hudBar(id, v){ $('#sn-'+id).style.width = clamp(v,0,100) + '%'; }
+
+    function update(dt){
+      t += dt; dayT += dt;
+      // 日付
+      if (dayT >= DAYLEN) {
+        day++; dayT = 0; foodT = 0;
+        blizzT = rnd(10, DAYLEN - cfg.blizzLen - 5);
+        if (day > cfg.days) return finish(true, `シロクマ${kills}頭を狩って ${cfg.days}日間 生きのびた！`);
+        floats.add(W/2, 180, '☀ DAY ' + day, '#a5f3fc', 30);
         api.sound('event');
-        showEvent();
+        hud$('day', day);
       }
-      render();
+      // 移動
+      if (joy) {
+        const len = Math.hypot(joy.dx, joy.dy);
+        if (len > 6) {
+          const spd = 120;
+          P.x = clamp(P.x + joy.dx/46 * spd * dt, 14, W-14);
+          P.y = clamp(P.y + joy.dy/46 * spd * dt, 14, H-14);
+          if (Math.abs(joy.dx) > 4) P.face = joy.dx > 0 ? 1 : -1;
+        }
+      }
+      // 伐採(木のそばに立つと自動)
+      for (const tr of trees){
+        if (tr.left <= 0) { tr.prog = 0; continue; }
+        if (Math.hypot(tr.x-P.x, tr.y-P.y) < 38) {
+          tr.prog += dt;
+          if (tr.prog >= 1.1) {
+            tr.prog = 0; tr.left--; wood++;
+            api.sound('chop');
+            parts.burst(tr.x, tr.y+6, {n:6, color:['#92400e','#a3e635'], speed:110, life:0.45, size:4, up:70});
+            floats.add(tr.x, tr.y-24, '+1🌲', '#a3e635', 14);
+            hud$('wood', wood);
+          }
+          break;
+        } else tr.prog = Math.max(0, tr.prog - dt*2);
+      }
+      // たき火(燃料消費・補給)
+      fuel -= (isBlizz() ? 6.5 : 3.8) * dt;
+      feedCd -= dt;
+      if (distFire() < 74 && wood > 0 && fuel < 95 && feedCd <= 0) {
+        feedCd = 0.45; wood--; fuel = Math.min(100, fuel + 13);
+        api.sound('pour');
+        parts.burst(FIRE.x, FIRE.y-10, {n:5, color:['#fb923c','#fde047'], speed:90, life:0.5, size:4, up:130});
+        hud$('wood', wood);
+      }
+      fuel = Math.max(0, fuel);
+      // 暖かさ
+      const nearFire = distFire() < 84 && fuel > 0;
+      let dw = nearFire ? 26 : -8;
+      if (isBlizz()) dw = nearFire ? 9 : -22;
+      P.warm = clamp(P.warm + dw*dt, 0, 100);
+      if (P.warm <= 0) P.hp -= 6*dt;
+      // 食料(自動消費)
+      foodT += dt;
+      if (foodT >= 4) { foodT = 0; if (food > 0) { food--; hud$('food', food); } }
+      if (food <= 0) P.hp -= 3*dt;
+      // ウサギ(逃げる・触れると捕獲)
+      for (const r of rabbits){
+        const d = Math.hypot(r.x-P.x, r.y-P.y);
+        if (d < 95) {
+          const a = Math.atan2(r.y-P.y, r.x-P.x);
+          r.x += Math.cos(a) * 92 * dt; r.y += Math.sin(a) * 92 * dt;
+        } else {
+          r.wa += rnd(-2,2)*dt;
+          r.x += Math.cos(r.wa) * 26 * dt; r.y += Math.sin(r.wa) * 26 * dt;
+        }
+        r.x = clamp(r.x, 14, W-14); r.y = clamp(r.y, 14, H-14);
+        if (d < 22) {
+          r.dead = true; food += 3;
+          floats.add(r.x, r.y-20, '+3🍖', '#4ade80', 15);
+          parts.burst(r.x, r.y, {n:8, color:'#e2e8f0', speed:120, life:0.4, size:3, up:60});
+          api.sound('coin');
+          respawnQ.push([9, 'rabbit']);
+          hud$('food', food);
+        }
+      }
+      // シロクマ(追跡・体当たり)
+      for (const b of bears){
+        b.hitCd -= dt; b.flash = Math.max(0, b.flash - dt);
+        const d = Math.hypot(b.x-P.x, b.y-P.y);
+        if (d < 150) {
+          const a = Math.atan2(P.y-b.y, P.x-b.x);
+          const spd = 52 + stage*8;
+          b.x += Math.cos(a) * spd * dt; b.y += Math.sin(a) * spd * dt;
+        } else {
+          b.wa += rnd(-1.5,1.5)*dt;
+          b.x += Math.cos(b.wa) * 24 * dt; b.y += Math.sin(b.wa) * 24 * dt;
+        }
+        b.x = clamp(b.x, 16, W-16); b.y = clamp(b.y, 16, H-16);
+        if (d < 30 && b.hitCd <= 0) {
+          b.hitCd = 1.1;
+          P.hp -= 15;
+          const a = Math.atan2(P.y-b.y, P.x-b.x);
+          P.x = clamp(P.x + Math.cos(a)*44, 14, W-14);
+          P.y = clamp(P.y + Math.sin(a)*44, 14, H-14);
+          shake.hit(6, 0.3);
+          parts.burst(P.x, P.y, {n:10, color:'#f87171', speed:160, life:0.5, size:4, up:70});
+          floats.add(P.x, P.y-30, '-15', '#f87171', 17);
+          api.sound('hit');
+        }
+      }
+      // 槍の自動攻撃(近くの動物へ)
+      atkCd -= dt;
+      if (atkCd <= 0) {
+        let tgt = null, td = 50, isBear = false;
+        bears.forEach(b => { const d = Math.hypot(b.x-P.x, b.y-P.y); if (d < td) { td = d; tgt = b; isBear = true; } });
+        if (tgt) {
+          atkCd = 0.7;
+          tgt.hp -= 2; tgt.flash = 0.12;
+          lastAtk = {x:tgt.x, y:tgt.y, t:0.12};
+          parts.burst(tgt.x, tgt.y, {n:5, color:['#e2e8f0','#f87171'], speed:130, life:0.35, size:3, grav:0});
+          api.sound('slash');
+          if (tgt.hp <= 0) {
+            tgt.dead = true; kills++; food += 8;
+            floats.add(tgt.x, tgt.y-28, '+8🍖', '#fde047', 19);
+            parts.burst(tgt.x, tgt.y, {n:22, color:['#f87171','#e2e8f0','#fde047'], speed:210, life:0.6, size:5, up:100});
+            shake.hit(4, 0.2);
+            api.sound('win');
+            respawnQ.push([13, 'bear']);
+            hud$('food', food);
+          }
+        }
+      }
+      // リスポーン
+      for (let i=respawnQ.length-1; i>=0; i--){
+        respawnQ[i][0] -= dt;
+        if (respawnQ[i][0] <= 0) {
+          if (respawnQ[i][1] === 'bear') spawnBear(); else spawnRabbit();
+          respawnQ.splice(i, 1);
+        }
+      }
+      for (let i=bears.length-1;i>=0;i--) if (bears[i].dead) bears.splice(i,1);
+      for (let i=rabbits.length-1;i>=0;i--) if (rabbits[i].dead) rabbits.splice(i,1);
+      // HP
+      P.hp = Math.min(100, P.hp);
+      hud$('hp', Math.max(0, Math.ceil(P.hp)));
+      hudBar('warm', P.warm);
+      hudBar('fuel', fuel);
+      if (P.hp <= 0) return finish(false, `Day ${day} でたおれてしまった…(🐻‍❄️×${kills})`);
+      if (lastAtk) { lastAtk.t -= dt; if (lastAtk.t <= 0) lastAtk = null; }
     }
-    function showEvent(){
-      if (!eventPool.length) return;
-      paused = true;
-      const ev = eventPool.splice(ri(0, eventPool.length-1), 1)[0];
-      const ovl = document.createElement('div'); ovl.className = 'sn-event';
-      ovl.innerHTML = `<div class="box"><div class="t">${ev.t}</div><div class="d">${ev.d}</div></div>`;
-      const box = ovl.querySelector('.box');
-      [['a','main'],['b','']].forEach(([k, cls]) => {
-        const b = document.createElement('button');
-        if (cls) b.className = cls;
-        b.textContent = ev[k].lbl;
-        b.addEventListener('click', () => {
-          api.sound('tap');
-          ev[k].fn(s);
-          s.lumber = Math.min(s.lumber, s.people);
-          s.hunt = Math.min(s.hunt, Math.max(0, s.people - s.lumber));
-          ovl.remove(); paused = false;
-          if (s.people <= 0) { over = true; timers.push(setTimeout(() => api.end({win:false, msg:'全員たおれてしまった…'}), 600)); }
-          render();
-        });
-        box.appendChild(b);
+    function draw(){
+      ctx.save();
+      shake.apply(ctx);
+      // 雪原
+      const bg = ctx.createLinearGradient(0,0,0,H);
+      bg.addColorStop(0, '#243447'); bg.addColorStop(1, '#1a2637');
+      ctx.fillStyle = bg; ctx.fillRect(-10,-10,W+20,H+20);
+      ctx.fillStyle = 'rgba(226,232,240,.06)';
+      for (let i=0;i<6;i++){
+        ctx.beginPath();
+        ctx.ellipse(60 + (i*97)%(W-80), 70 + (i*173)%(H-100), 46, 18, 0, 0, 7);
+        ctx.fill();
+      }
+      // 夜のとばり(1日の後半で暗く)
+      const nightA = clamp((dayT/DAYLEN - 0.6) * 0.9, 0, 0.32);
+      if (nightA > 0) { ctx.fillStyle = `rgba(2,6,23,${nightA.toFixed(2)})`; ctx.fillRect(-10,-10,W+20,H+20); }
+      // たき火の暖域+グロー
+      if (fuel > 0) {
+        const g = ctx.createRadialGradient(FIRE.x, FIRE.y, 8, FIRE.x, FIRE.y, 95);
+        const a = 0.28 * (0.5 + fuel/200) + Math.sin(t*8)*0.03;
+        g.addColorStop(0, `rgba(251,146,60,${a.toFixed(3)})`);
+        g.addColorStop(1, 'rgba(251,146,60,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(FIRE.x, FIRE.y, 95, 0, 7); ctx.fill();
+      }
+      ctx.strokeStyle = 'rgba(251,146,60,.25)'; ctx.lineWidth = 1.5;
+      ctx.setLineDash([5,7]);
+      ctx.beginPath(); ctx.arc(FIRE.x, FIRE.y, 84, 0, 7); ctx.stroke();
+      ctx.setLineDash([]);
+      // たき火本体
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(FIRE.x-14, FIRE.y+4, 28, 6);
+      ctx.font = (14 + fuel*0.22) + 'px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+      if (fuel > 0) ctx.fillText('🔥', FIRE.x, FIRE.y + 6 + Math.sin(t*10)*1.5);
+      else ctx.fillText('🪵', FIRE.x, FIRE.y + 6);
+      // 木
+      trees.forEach(tr => {
+        ctx.font = '26px serif'; ctx.fillStyle = '#fff';
+        ctx.fillText(tr.left > 0 ? '🌲' : '🪵', tr.x, tr.y + 9);
+        if (tr.prog > 0) {                         // 伐採進捗リング
+          ctx.strokeStyle = '#a3e635'; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.arc(tr.x, tr.y, 20, -Math.PI/2, -Math.PI/2 + tr.prog/1.1*Math.PI*2); ctx.stroke();
+        }
       });
-      host.appendChild(ovl);
-    }
-    // 操作
-    const bind = (id, fn) => el(id).addEventListener('click', () => { if (over || paused) return; fn(); api.sound('tap'); render(); });
-    bind('lp', () => { if (s.lumber + s.hunt < s.people) s.lumber++; });
-    bind('lm', () => { if (s.lumber > 0) s.lumber--; });
-    bind('hp', () => { if (s.lumber + s.hunt < s.people) s.hunt++; });
-    bind('hm', () => { if (s.hunt > 0) s.hunt--; });
-    bind('fp', () => { if (s.fire < 5 && s.wood >= 4) { s.wood -= 4; s.fire++; } });
-    bind('fm', () => { if (s.fire > 0) s.fire--; });
-    el('chop').addEventListener('click', () => {
-      if (over || paused || chopCd > 0) return;
-      chopCd = 0.25; s.wood++;
-      api.sound('chop');
-      render();
-    });
-    function drawSnow(dt){
-      if (!scv.width) return;
-      sctx.clearRect(0, 0, scv.width, scv.height);
-      const wind = isBlizz() ? 90 : 12;
-      const spd = isBlizz() ? 150 : 45;
-      sctx.fillStyle = 'rgba(226,232,240,.85)';
+      // ウサギ
+      rabbits.forEach(r => { ctx.font = '17px serif'; ctx.fillStyle = '#fff'; ctx.fillText('🐇', r.x, r.y + 6); });
+      // シロクマ
+      bears.forEach(b => {
+        ctx.font = '30px serif'; ctx.fillStyle = '#fff';
+        ctx.fillText('🐻‍❄️', b.x, b.y + 10);
+        if (b.flash > 0) {
+          ctx.fillStyle = `rgba(255,255,255,${Math.min(b.flash*6,0.8).toFixed(2)})`;
+          ctx.beginPath(); ctx.arc(b.x, b.y, 20, 0, 7); ctx.fill();
+        }
+        ctx.fillStyle = '#450a0a'; ctx.fillRect(b.x-15, b.y-24, 30, 4);
+        ctx.fillStyle = '#f87171'; ctx.fillRect(b.x-15, b.y-24, 30*Math.max(b.hp,0)/b.max, 4);
+      });
+      // 槍エフェクト
+      if (lastAtk) {
+        ctx.strokeStyle = 'rgba(226,232,240,.9)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(P.x, P.y-6); ctx.lineTo(lastAtk.x, lastAtk.y); ctx.stroke();
+      }
+      // プレイヤー
+      ctx.fillStyle = 'rgba(0,0,0,.3)';
+      ctx.beginPath(); ctx.ellipse(P.x, P.y+14, 11, 4, 0, 0, 7); ctx.fill();
+      ctx.save();
+      ctx.translate(P.x, P.y);
+      ctx.scale(P.face, 1);
+      ctx.font = '28px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+      ctx.fillText('🧑‍🦺', 0, 10);
+      ctx.restore();
+      // 寒さビネット
+      const coldA = (1 - P.warm/100) * 0.4;
+      if (coldA > 0.02) {
+        const cg = ctx.createRadialGradient(W/2, H/2, 120, W/2, H/2, 330);
+        cg.addColorStop(0, 'rgba(125,211,252,0)');
+        cg.addColorStop(1, `rgba(125,211,252,${coldA.toFixed(2)})`);
+        ctx.fillStyle = cg; ctx.fillRect(-10,-10,W+20,H+20);
+      }
+      // 雪(吹雪は横なぐり)
+      const wind = isBlizz() ? 210 : 16;
+      const fall = isBlizz() ? 190 : 55;
+      ctx.fillStyle = 'rgba(226,232,240,.8)';
       flakes.forEach(f => {
-        f[1] += spd * f[2] * dt / scv.height;
-        f[0] += wind * f[2] * dt / scv.width;
+        f[1] += fall * f[2] * 0.016 / H;
+        f[0] += wind * f[2] * 0.016 / W;
         if (f[1] > 1) { f[1] = 0; f[0] = Math.random(); }
         if (f[0] > 1) f[0] = 0;
-        sctx.beginPath();
-        sctx.arc(f[0]*scv.width, f[1]*scv.height, f[2]*1.6, 0, 7);
-        sctx.fill();
+        const fx = f[0]*W, fy = f[1]*H;
+        if (isBlizz()) ctx.fillRect(fx, fy, 3 + f[2]*3, 1.6);
+        else { ctx.beginPath(); ctx.arc(fx, fy, f[2]*1.5, 0, 7); ctx.fill(); }
       });
+      if (isBlizz()) {
+        ctx.fillStyle = 'rgba(125,211,252,.13)'; ctx.fillRect(-10,-10,W+20,H+20);
+        ctx.fillStyle = '#bae6fd'; ctx.font = '800 15px system-ui'; ctx.textAlign = 'center';
+        if (Math.sin(t*7) > 0) ctx.fillText('🌨 吹雪！たき火のそばへ！', W/2, 40);
+      } else if (isWarn()) {
+        ctx.fillStyle = '#fca5a5'; ctx.font = '800 14px system-ui'; ctx.textAlign = 'center';
+        if (Math.sin(t*8) > 0) ctx.fillText('⚠ 吹雪がちかづいている…', W/2, 40);
+      }
+      // 日の進行バー(画面上部)
+      ctx.fillStyle = 'rgba(11,19,36,.75)'; ctx.fillRect(60, 14, W-120, 7);
+      ctx.fillStyle = '#7dd3fc'; ctx.fillRect(60, 14, (W-120)*clamp(dayT/DAYLEN,0,1), 7);
+      // ジョイスティック
+      if (joy) {
+        ctx.fillStyle = 'rgba(148,163,184,.15)';
+        ctx.beginPath(); ctx.arc(joy.ox, joy.oy, 34, 0, 7); ctx.fill();
+        ctx.fillStyle = 'rgba(226,232,240,.4)';
+        ctx.beginPath(); ctx.arc(joy.ox+joy.dx*0.7, joy.oy+joy.dy*0.7, 15, 0, 7); ctx.fill();
+      }
+      parts.draw(ctx);
+      floats.draw(ctx);
+      ctx.restore();
     }
     function loop(tm){
       raf = requestAnimationFrame(loop);
-      const dt = Math.min((tm - tPrev)/1000 || 0, 1/20);
+      const dt = Math.min((tm - tPrev)/1000 || 0, 1/30);
       tPrev = tm;
-      chopCd = Math.max(0, chopCd - dt);
-      drawSnow(dt);
-      if (over || paused) return;
-      acc += dt;
-      while (acc >= TICK && !over && !paused) { acc -= TICK; doTick(); }
+      if (!over) update(dt);
+      parts.update(dt); floats.update(dt); shake.update(dt);
+      draw();
     }
-    render();
     raf = requestAnimationFrame(tm => { tPrev = tm; raf = requestAnimationFrame(loop); });
-    return {destroy(){ over = true; cancelAnimationFrame(raf); ro.disconnect(); timers.forEach(clearTimeout); }};
+    return {destroy(){ cancelAnimationFrame(raf); ac.abort(); timers.forEach(clearTimeout); dcv(); }};
   }
 };
 
@@ -2414,9 +2560,9 @@ const DadaGame = {
    ============================================================ */
 const CellGame = {
   stages: [
-    {waves:3, base:12, hp:2, spd:26, rot:1.1},
-    {waves:4, base:15, hp:3, spd:30, rot:1.4},
-    {waves:5, base:18, hp:5, spd:33, rot:1.7},
+    {waves:3, base:12, hp:4, spd:26, rot:1.1},
+    {waves:4, base:15, hp:6, spd:30, rot:1.4},
+    {waves:5, base:18, hp:9, spd:33, rot:1.7},
   ],
   create(host, stage, api){
     const cfg = this.stages[stage];
@@ -2433,7 +2579,7 @@ const CellGame = {
     let t = 0, over = false, paused = false, raf = 0, tPrev = 0;
     let enemies = [];
     let dna = [], evo = 0, evoNeed = 8;
-    let dmgMul = 1, beamW = 5, heatMul = 1, coolMul = 1, sats = 0, satAng = 0;
+    let dmgMul = 1, beamW = 12, heatMul = 1, coolMul = 1, sats = 0, satAng = 0;
     let rings = [], surge = 0, dmgLv = 0, totalUp = 0;   // 進化演出用
     const parts = makeParticles(), floats = makeFloats(), shake = makeShake();
     const timers = [];
@@ -2468,13 +2614,14 @@ const CellGame = {
     }
     function killEnemy(e, ex, ey){
       e.dead = true;
-      parts.burst(ex, ey, {n:12, color:['#f472b6','#c084fc','#e2e8f0'], speed:160, life:0.5, size:4, grav:0});
+      parts.burst(ex, ey, {n:24, color:['#f472b6','#c084fc','#fde047','#e2e8f0'], speed:220, life:0.6, size:5, grav:0});
+      rings.push({x:ex, y:ey, r:6, v:230, max:80});      // 撃破の衝撃波
       dna.push({x:ex, y:ey, v:50});
       if (Math.random() < 0.6) api.sound('hit');
     }
     const UPGRADES = [
       {t:'💥 ビーム強化',   d:'ビーム威力 +40%(色が進化)', ok:() => true,        fn:() => { dmgMul *= 1.4; dmgLv++; }},
-      {t:'📏 ビーム拡大',   d:'ビームが太くなる',           ok:() => beamW < 14,  fn:() => beamW += 3},
+      {t:'📏 ビーム拡大',   d:'ビームが太くなる',           ok:() => beamW < 28,  fn:() => beamW += 5},
       {t:'❄ クールボディ', d:'熱がたまりにくく冷めやすく', ok:() => heatMul > 0.5, fn:() => { heatMul *= 0.75; coolMul *= 1.25; }},
       {t:'🛰 サテライト',   d:'周回するこぶんが敵を攻撃',   ok:() => sats < 2,    fn:() => sats++},
       {t:'🔧 コア修復',     d:'HP +30',                    ok:() => C.hp < 95,   fn:() => { C.hp = Math.min(100, C.hp+30); $('#cl-hp').textContent = Math.ceil(C.hp); }},
@@ -2496,7 +2643,7 @@ const CellGame = {
           u.fn();
           gauge.addSkill(u.t.split(' ')[0]);
           totalUp++; surge = 2;
-          rings.push({r:C.r, a:1}, {r:C.r-16, a:1});
+          rings.push({x:C.x, y:C.y, r:C.r, v:300, max:330}, {x:C.x, y:C.y, r:C.r-16, v:300, max:330});
           shake.hit(6, 0.35);
           floats.add(C.x, C.y-78, u.t, '#a7f3d0', 22);
           parts.burst(C.x, C.y, {n:26, color:['#34d399','#a7f3d0','#fde047'], speed:240, life:0.8, size:5, grav:0});
@@ -2529,8 +2676,9 @@ const CellGame = {
           if (proj <= 0) continue;
           if (Math.abs(dx*uy - dy*ux) < e.r + beamW) {
             e.hp -= 15 * dmgMul * dt;
-            if (Math.random() < 0.25)
-              parts.burst(ex, ey, {n:2, color:['#a7f3d0','#34d399'], speed:80, life:0.3, size:3, grav:0});
+            e.flash = 0.12;
+            if (Math.random() < 0.6)
+              parts.burst(ex, ey, {n:4, color:['#a7f3d0','#34d399','#fff'], speed:150, life:0.35, size:4, grav:0});
             if (e.hp <= 0) killEnemy(e, ex, ey);
           }
         }
@@ -2545,9 +2693,10 @@ const CellGame = {
             if (e.dead) continue;
             const ex = C.x + Math.cos(e.ang)*e.rad, ey = C.y + Math.sin(e.ang)*e.rad;
             if (Math.hypot(ex-sx, ey-sy) < e.r + 15) {
-              e.hp -= 13 * dt;
-              if (Math.random() < 0.2)
-                parts.burst(ex, ey, {n:1, color:'#a7f3d0', speed:60, life:0.25, size:3, grav:0});
+              e.hp -= 15 * dt;
+              e.flash = 0.12;
+              if (Math.random() < 0.5)
+                parts.burst(ex, ey, {n:2, color:['#a7f3d0','#fff'], speed:120, life:0.3, size:3, grav:0});
               if (e.hp <= 0) killEnemy(e, ex, ey);
             }
           }
@@ -2578,6 +2727,7 @@ const CellGame = {
         e.rad -= e.spd * dt;
         e.ang += e.rot * e.dir * dt;
         e.spin += dt * 3;
+        e.flash = Math.max(0, (e.flash || 0) - dt);
         if (e.rad <= C.r + e.r) {
           e.dead = true;
           C.hp -= e.tank ? 14 : 8;
@@ -2617,11 +2767,11 @@ const CellGame = {
         ctx.arc(C.x + Math.cos(d[0])*d[1], C.y + Math.sin(d[0])*d[1], d[3], 0, 7);
         ctx.fill();
       });
-      // 進化の衝撃波
+      // 衝撃波リング(進化・撃破)
       rings.forEach(rg => {
         ctx.strokeStyle = `rgba(52,211,153,${(rg.a*0.7).toFixed(3)})`;
         ctx.lineWidth = 3 + rg.a*3;
-        ctx.beginPath(); ctx.arc(C.x, C.y, rg.r, 0, 7); ctx.stroke();
+        ctx.beginPath(); ctx.arc(rg.x, rg.y, rg.r, 0, 7); ctx.stroke();
       });
       const beamOn = firing && !overheat;
       // 照準線(非発射時)
@@ -2645,15 +2795,35 @@ const CellGame = {
         const wMul = 1 + surge*0.3;
         const bx = C.x + Math.cos(aim)*420, by = C.y + Math.sin(aim)*420;
         const sx = C.x + Math.cos(aim)*(C.r-2), sy = C.y + Math.sin(aim)*(C.r-2);
+        const line = () => { ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(bx,by); ctx.stroke(); };
         ctx.lineCap = 'round';
-        ctx.strokeStyle = BC[0]; ctx.lineWidth = (12 + beamW*1.6) * wMul;
-        ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(bx,by); ctx.stroke();
-        ctx.strokeStyle = BC[1]; ctx.lineWidth = (3 + beamW*0.6) * wMul;
-        ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(bx,by); ctx.stroke();
-        ctx.strokeStyle = BC[2]; ctx.lineWidth = (1 + beamW*0.2) * wMul;
-        ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(bx,by); ctx.stroke();
-        ctx.fillStyle = 'rgba(167,243,208,.8)';
-        ctx.beginPath(); ctx.arc(sx, sy, (7 + Math.sin(t*30)*2) * wMul, 0, 7); ctx.fill();
+        // 最外殻グロー(脈動)
+        ctx.globalAlpha = 0.4;
+        ctx.strokeStyle = BC[0];
+        ctx.lineWidth = (16 + beamW*2.2) * wMul * (1 + Math.sin(t*18)*0.18);
+        line();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = BC[0]; ctx.lineWidth = (10 + beamW*1.4) * wMul; line();
+        ctx.strokeStyle = BC[1]; ctx.lineWidth = (3 + beamW*0.55) * wMul; line();
+        ctx.strokeStyle = BC[2]; ctx.lineWidth = (1 + beamW*0.2) * wMul; line();
+        // ビーム上を高速で流れるエネルギー粒
+        ctx.setLineDash([12, 26]);
+        ctx.lineDashOffset = -t * 460;
+        ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 2.5;
+        line();
+        ctx.setLineDash([]);
+        // マズルフレア(回転する十字光)
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.rotate(t * 5);
+        ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 2.5;
+        for (let k=0;k<4;k++){
+          ctx.rotate(Math.PI/2);
+          ctx.beginPath(); ctx.moveTo(0, 9*wMul); ctx.lineTo(0, (16 + beamW*0.4)*wMul); ctx.stroke();
+        }
+        ctx.restore();
+        ctx.fillStyle = 'rgba(167,243,208,.85)';
+        ctx.beginPath(); ctx.arc(sx, sy, (8 + Math.sin(t*30)*2.5) * wMul, 0, 7); ctx.fill();
       }
       // 敵(ウイルス)
       enemies.forEach(e => {
@@ -2671,6 +2841,10 @@ const CellGame = {
         ctx.beginPath(); ctx.arc(ex, ey, e.r, 0, 7); ctx.fill();
         ctx.fillStyle = 'rgba(0,0,0,.25)';
         ctx.beginPath(); ctx.arc(ex, ey, e.r*0.55, 0, 7); ctx.fill();
+        if (e.flash > 0) {                                 // 被弾フラッシュ
+          ctx.fillStyle = `rgba(255,255,255,${Math.min(e.flash*6, 0.85).toFixed(2)})`;
+          ctx.beginPath(); ctx.arc(ex, ey, e.r + 3, 0, 7); ctx.fill();
+        }
         // コアをにらむ目
         const ea = Math.atan2(C.y-ey, C.x-ex);
         ctx.fillStyle = '#fff';
@@ -2744,7 +2918,7 @@ const CellGame = {
       tPrev = tm;
       if (!over && !paused) update(dt);
       surge = Math.max(0, surge - dt);
-      rings.forEach(rg => { rg.r += 300*dt; rg.a = Math.max(0, 1 - rg.r/320); });
+      rings.forEach(rg => { rg.r += rg.v*dt; rg.a = Math.max(0, 1 - rg.r/rg.max); });
       rings = rings.filter(rg => rg.a > 0);
       parts.update(dt); floats.update(dt); shake.update(dt);
       draw();
