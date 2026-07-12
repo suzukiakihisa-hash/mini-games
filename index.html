@@ -121,12 +121,36 @@ html,body{
 }
 canvas{display:block; touch-action:none;}
 .hint-bar{
-  position:absolute; top:10px; left:50%; transform:translateX(-50%);
+  position:absolute; top:52px; left:50%; transform:translateX(-50%);
   background:rgba(15,23,42,.85); border:1px solid var(--line);
   padding:8px 16px; border-radius:99px; font-size:13px; white-space:nowrap;
   pointer-events:none; z-index:5; animation:hintfade 3s forwards;
 }
 @keyframes hintfade{0%,70%{opacity:1}100%{opacity:0}}
+/* ---- スキル進捗ゲージ(サバイブヒーロー/セルサバイバー) ---- */
+.pw-gauge{
+  position:absolute; top:8px; left:50%; transform:translateX(-50%);
+  width:min(88%, 330px); z-index:5; pointer-events:none;
+}
+.pw-bar{
+  position:relative; height:18px;
+  background:rgba(11,19,36,.85); border:1px solid var(--line);
+  border-radius:99px; overflow:hidden;
+  box-shadow:0 2px 8px rgba(2,6,23,.5);
+}
+.pw-fill{
+  height:100%; width:0%; border-radius:99px;
+  transition:width .18s ease-out;
+}
+.pw-txt{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:11.5px; font-weight:800; letter-spacing:.03em;
+  text-shadow:0 1px 3px rgba(0,0,0,.9);
+}
+.pw-skills{
+  text-align:center; font-size:14px; margin-top:3px; min-height:18px;
+  text-shadow:0 1px 3px rgba(0,0,0,.8); letter-spacing:2px;
+}
 .game-hud{
   flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:8px;
   padding:8px 12px; font-size:13px; color:var(--sub); min-height:40px; flex-wrap:wrap;
@@ -496,6 +520,28 @@ function makeShake(){
     apply(ctx){ if (t > 0) ctx.translate(rnd(-mag, mag), rnd(-mag, mag)); }
   };
 }
+function makeSkillGauge(host, icon, c1, c2){
+  // 「あと何個で次のスキルか」を常時表示する大型ゲージ+獲得スキル一覧
+  const el = document.createElement('div');
+  el.className = 'pw-gauge';
+  el.innerHTML = `<div class="pw-bar"><div class="pw-fill" style="background:linear-gradient(90deg,${c1},${c2})"></div>
+    <div class="pw-txt"></div></div><div class="pw-skills"></div>`;
+  host.appendChild(el);
+  const fill = el.querySelector('.pw-fill'), txt = el.querySelector('.pw-txt'), sk = el.querySelector('.pw-skills');
+  let lc = -1, ln = -1;
+  return {
+    set(cur, need){
+      if (cur === lc && need === ln) return;
+      lc = cur; ln = need;
+      fill.style.width = clamp(cur/need*100, 0, 100) + '%';
+      txt.textContent = `${icon} ${cur} / ${need}  つぎのスキルまで`;
+    },
+    addSkill(emoji){
+      sk.textContent += emoji;
+      if (sk.textContent.length > 20) sk.textContent = '…' + sk.textContent.slice(-18);
+    }
+  };
+}
 function confettiBurst(){
   const old = $('#confetti'); if (old) old.remove();
   const c = document.createElement('div'); c.id = 'confetti';
@@ -685,7 +731,7 @@ const RunGame = {
     let dist = 0;
     const goalPx = cfg.goal * 8;
     let obstacles = [], coins = [];
-    let nextSpawn = 300, nextCoin = 500, coinCnt = 0;
+    let nextSpawn = 300, nextCoin = 500, coinCnt = 0, coinPop = 0;
     let over = false, raf = 0, tPrev = 0, runT = 0;
     const parts = makeParticles(), shake = makeShake();
     const stars = [];
@@ -702,6 +748,10 @@ const RunGame = {
         tall:  [{w:22, h:46}],
         double:[{w:20, h:28},{gap:26, w:20, h:28}],
       };
+      let width = 0;
+      defs[kind].forEach(d => { width += (d.gap || 0) + d.w; });
+      // 既存コインと重なる位置なら少し待って再試行(コインは常に取れる位置に)
+      if (coins.some(c => !c.got && c.x > W + 40 - 64 && c.x < W + 40 + width + 64)) { nextSpawn = 90; return; }
       let off = 0;
       defs[kind].forEach(d => {
         off += d.gap || 0;
@@ -711,7 +761,11 @@ const RunGame = {
       nextSpawn = cfg.v * cfg.gapF * rnd(0.85, 1.7);
     }
     function spawnCoins(){
-      if (Math.random() < 0.5) {                       // 直線
+      const arc = Math.random() >= 0.5;
+      const width = arc ? 4*36 : 2*34;
+      // 障害物と重なる位置なら少し待って再試行
+      if (obstacles.some(o => o.x + o.w > W + 40 - 64 && o.x < W + 40 + width + 64)) { nextCoin = 110; return; }
+      if (!arc) {                                       // 直線
         for (let i=0;i<3;i++) coins.push({x:W+40+i*34, y:GY-46, got:false});
       } else {                                          // アーチ
         for (let i=0;i<5;i++){
@@ -761,7 +815,8 @@ const RunGame = {
       for (const c of coins){
         const dx = c.x - player.x, dy = c.y - (player.y - player.h/2);
         if (dx*dx + dy*dy < 30*30) {
-          c.got = true; coinCnt++; api.sound('coin');
+          c.got = true; coinCnt++; coinPop = 0.35;
+          api.sound('coin');
           parts.burst(c.x, c.y, {n:8, color:'#fde047', speed:130, life:0.4, size:3, grav:250});
           $('#run-c').textContent = coinCnt;
         }
@@ -778,6 +833,7 @@ const RunGame = {
           return;
         }
       }
+      coinPop = Math.max(0, coinPop - dt);
       if (dist >= goalPx) finish(true, `タイム: ${runT.toFixed(1)} 秒 / 🪙${coinCnt}まい`);
       $('#run-d').textContent = Math.min(cfg.goal, Math.floor(dist/8));
       $('#run-bar').style.width = clamp(dist/goalPx*100,0,100) + '%';
@@ -827,33 +883,85 @@ const RunGame = {
       }
       // ゴール旗
       const gx = goalPx - dist + player.x;
-      if (gx < W + 30) { ctx.font = '36px serif'; ctx.textAlign = 'center'; ctx.fillText('🚩', gx, GY - 6); }
+      if (gx < W + 30) { ctx.font = '36px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.globalAlpha = 1; ctx.fillText('🚩', gx, GY - 6); }
       // コイン
-      ctx.font = '20px serif'; ctx.textAlign = 'center';
+      ctx.font = '20px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.globalAlpha = 1;
       coins.forEach(c => { if (!c.got) ctx.fillText('🪙', c.x, c.y + 7 + Math.sin(runT*5 + c.x)*2); });
       // 障害物
       obstacles.forEach(o => {
-        if (o.type === 'tall') { ctx.font = (o.h+6)+'px serif'; ctx.textAlign='center'; ctx.fillText('🌵', o.x+o.w/2, GY-2); }
+        if (o.type === 'tall') { ctx.font = (o.h+6)+'px serif'; ctx.textAlign='center'; ctx.fillStyle = '#fff'; ctx.fillText('🌵', o.x+o.w/2, GY-2); }
         else {
           ctx.fillStyle = '#ef4444';
           ctx.beginPath(); ctx.roundRect(o.x, GY-o.h, o.w, o.h, 5); ctx.fill();
           ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(o.x, GY-o.h, o.w, 5);
         }
       });
-      // プレイヤー(🏃は左向き絵文字なので反転・2段ジャンプで回転)
+      // プレイヤー(手足が動くベクターランナー・2段ジャンプで回転)
       if (!player.dead) {
+        ctx.globalAlpha = 1;
+        // 接地影(高く跳ぶほど薄く小さく)
+        const airH = clamp((GY - player.y)/130, 0, 1);
+        ctx.fillStyle = `rgba(0,0,0,${(0.32 - airH*0.2).toFixed(2)})`;
+        ctx.beginPath(); ctx.ellipse(player.x, GY+8, 14 - airH*5, 4, 0, 0, 7); ctx.fill();
         ctx.save();
         ctx.translate(player.x, player.y);
         if (player.spin > 0) ctx.rotate((1-player.spin) * Math.PI * 2);
-        ctx.scale(-1,1);
-        ctx.font = '38px serif'; ctx.textAlign = 'center';
-        const bob = player.jumps === 0 ? Math.sin(runT*22)*2 : 0;
-        ctx.fillText('🏃', 0, -2 + bob);
+        const onGround = player.jumps === 0;
+        const phase = runT * 15;
+        const bob = onGround ? Math.abs(Math.sin(phase)) * 2 : 0;
+        ctx.translate(0, -bob);
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        // 2関節の手足を描くヘルパ(角度は真下=0・前方向が正)
+        const limb = (x0, y0, a1, l1, a2, l2, color, w) => {
+          const x1 = x0 + Math.sin(a1)*l1, y1 = y0 + Math.cos(a1)*l1;
+          const x2 = x1 + Math.sin(a2)*l2, y2 = y1 + Math.cos(a2)*l2;
+          ctx.strokeStyle = color; ctx.lineWidth = w;
+          ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+        };
+        const hipX = -1, hipY = -16, shX = 2, shY = -30;
+        // 走行フォーム: 手前の腕は手前の脚と逆位相(右脚前=右腕後ろ)。
+        // 膝: 後ろ脚はかかとが上がる(スネは太ももより後ろに折れる)。肘: 常に約90度前向き。
+        let l1, l2, a1, a2;
+        if (onGround) {
+          l1 = Math.sin(phase) * 0.85;   // 手前の太もも
+          l2 = -l1;                      // 奥の太もも(逆位相)
+          a1 = -l1 * 0.8;                // 手前の上腕(脚と逆)
+          a2 = l1 * 0.8;                 // 奥の上腕
+        } else {
+          l1 = 0.95; l2 = -0.35; a1 = -0.7; a2 = 0.5;   // 空中タック姿勢
+        }
+        // 奥側の腕・脚(暗色)
+        limb(shX, shY, a2, 8, a2 + 1.2, 7, '#075985', 4);
+        limb(hipX, hipY, l2, 9, l2*1.3 - 0.7, 8, '#075985', 5);
+        // 胴体(前傾)
+        ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(shX, shY); ctx.stroke();
+        // 頭+ヘッドバンド
+        ctx.fillStyle = '#fde68a';
+        ctx.beginPath(); ctx.arc(shX+3, shY-8, 6.5, 0, 7); ctx.fill();
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(shX-3, shY-13, 12, 3);
+        // 手前側の脚・腕(明色)
+        limb(hipX, hipY, l1, 9, l1*1.3 - 0.7, 8, '#38bdf8', 5);
+        limb(shX, shY, a1, 8, a1 + 1.2, 7, '#7dd3fc', 4);
         ctx.restore();
-        if (player.jumps === 0 && Math.random() < 0.3)
+        if (onGround && Math.random() < 0.3)
           parts.burst(player.x-12, GY, {n:1, color:'#475569', speed:40, life:0.3, size:3, grav:60});
       }
       parts.draw(ctx);
+      // コインカウンタ(常時・取得時にポップ)
+      const cps = 1 + coinPop * 0.9;
+      ctx.save();
+      ctx.translate(16, 36);
+      ctx.scale(cps, cps);
+      ctx.font = '20px serif'; ctx.textAlign = 'left';
+      ctx.fillText('🪙', 0, 0);
+      ctx.font = '800 18px system-ui';
+      ctx.fillStyle = 'rgba(0,0,0,.65)';
+      ctx.fillText('× ' + coinCnt, 27, 1);
+      ctx.fillStyle = '#fde047';
+      ctx.fillText('× ' + coinCnt, 26, 0);
+      ctx.restore();
       ctx.restore();
     }
     function finish(win, msg){
@@ -1048,25 +1156,16 @@ const WaterGame = {
 const PinGame = {
   W:320, H:480,
   stages: [
-    { // S1: 3本のピン。溶岩を捨て→お宝を棚に→棚を開ける
-      walls:[[60,40,60,440],[260,40,260,440],[102,440,260,440],[110,395,110,440],[210,395,210,440],[112,312,112,340],[208,312,208,340]],
-      pot:{x1:112,x2:208,y1:408,y2:438},
-      drains:[[60,102]],
-      pins:[[90,90,230,90],[258,200,65,280],[100,340,220,340]],
-      gold:[[140,76],[175,76],[135,326],[180,326]],
-      lava:[[78,258],[98,250]],
-      hint:'ぬく順番がだいじ！溶岩🔥にふれるな'
-    },
-    { // S2: 4本のピン。左右2つの溶岩を両方すててからお宝を通す
+    { // S1: 4本のピン。左右2つの溶岩を両方すててからお宝を通す
       walls:[[60,40,60,440],[260,40,260,440],[102,440,218,440],[110,395,110,440],[210,395,210,440],[112,312,112,340],[208,312,208,340]],
       pot:{x1:112,x2:208,y1:408,y2:438},
       drains:[[60,102],[218,260]],
       pins:[[90,90,230,90],[62,180,255,250],[100,340,220,340],[190,290,65,330]],
       gold:[[140,76],[175,76],[135,326],[180,326]],
       lava:[[212,220],[233,229],[80,311],[100,306]],
-      hint:'4本のピン！溶岩を全部すてろ'
+      hint:'溶岩🔥を全部すててからお宝を通せ'
     },
-    { // S3: 5本のピン・2段トレイ。溶岩2組を両側にすて、お宝を2段リレーでツボへ
+    { // S2: 5本のピン・2段トレイリレー
       walls:[[60,40,60,440],[260,40,260,440],[102,440,218,440],[110,395,110,440],[210,395,210,440],
              [112,252,112,280],[208,252,208,280],[112,352,112,380],[208,352,208,380]],
       pot:{x1:112,x2:208,y1:408,y2:438},
@@ -1075,6 +1174,16 @@ const PinGame = {
       gold:[[140,56],[175,56],[135,266],[180,266]],
       lava:[[215,178],[235,185],[80,322],[100,316]],
       hint:'5本のピン！2段リレーでお宝を運べ'
+    },
+    { // S3: 7本のピン。溶岩斜面+ダミー斜面(乗ると排出口行き)の2枚重ね+ツボのフタ
+      walls:[[60,40,60,440],[260,40,260,440],[102,440,218,440],[110,383,110,440],[210,383,210,440],
+             [112,252,112,280],[208,252,208,280],[112,352,112,380],[208,352,208,380]],
+      pot:{x1:112,x2:208,y1:408,y2:438},
+      drains:[[60,102],[218,260]],
+      pins:[[90,70,230,70],[62,100,255,158],[62,140,255,205],[100,280,220,280],[100,380,220,380],[190,300,65,340],[112,390,208,390]],
+      gold:[[140,56],[175,56],[135,266],[180,266]],
+      lava:[[228,131],[246,138],[80,322],[100,316]],
+      hint:'7本のピン！3枚のしかけを全部かわせ'
     }
   ],
   create(host, stage, api){
@@ -1551,7 +1660,6 @@ const ZombieGame = {
       if (o.op === '-') n -= o.v;
       if (o.op === '×') n *= o.v;
       if (o.op === '÷') n = Math.ceil(n / o.v);
-      n = Math.min(n, 80);
       floats.add(sx, SY-52, (goodOp?'+':'') + o.op + o.v, goodOp ? '#4ade80' : '#f87171', 20);
       api.sound(goodOp ? 'gate' : 'hit');
       if (!goodOp) shake.hit(4, 0.2);
@@ -1579,7 +1687,7 @@ const ZombieGame = {
       if (inBossZone && !boss) boss = {x:W/2, y:-100, hp:cfg.boss, max:cfg.boss, spd:11};
       // 射撃
       fireCd -= dt;
-      const interval = 1 / Math.min(n * 2, 50);
+      const interval = 1 / Math.min(n * 2, 90);
       while (fireCd <= 0) {
         fireCd += interval;
         const i = ri(0, Math.min(n, 30) - 1);
@@ -1643,7 +1751,7 @@ const ZombieGame = {
       // 増援ピックアップ
       for (const p of pickups){
         if (!p.got && p.y > SY - 30 && Math.abs(p.x - sx) < 44) {
-          p.got = true; n = Math.min(n + 3, 80);
+          p.got = true; n += 3;
           floats.add(p.x, SY - 44, '+3', '#4ade80', 18);
           api.sound('gate');
           $('#zb-n').textContent = n;
@@ -1700,24 +1808,34 @@ const ZombieGame = {
       // 弾
       ctx.fillStyle = '#fde047';
       bullets.forEach(b => ctx.fillRect(b.x-1.5, b.y-7, 3, 9));
-      // 敵
+      // 敵(残りHP数字を常時表示)
       enemies.forEach(e => {
         const r = e.big ? 19 : 13;
         ctx.font = (r*2.2) + 'px serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff'; ctx.globalAlpha = 1;
         ctx.fillText('🧟', e.x, e.y + r*0.8);
-        if (e.hp < e.max) {
-          ctx.fillStyle = '#450a0a'; ctx.fillRect(e.x-14, e.y-r-10, 28, 4);
-          ctx.fillStyle = '#f87171'; ctx.fillRect(e.x-14, e.y-r-10, 28*e.hp/e.max, 4);
-        }
+        ctx.fillStyle = '#450a0a'; ctx.fillRect(e.x-14, e.y-r-8, 28, 4);
+        ctx.fillStyle = '#f87171'; ctx.fillRect(e.x-14, e.y-r-8, 28*Math.max(e.hp,0)/e.max, 4);
+        ctx.font = '800 12px system-ui';
+        ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.lineWidth = 3;
+        ctx.strokeText(Math.ceil(e.hp), e.x, e.y - r - 12);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(Math.ceil(e.hp), e.x, e.y - r - 12);
       });
-      // ボス
+      // ボス(残りHP数字つき)
       if (boss) {
         ctx.font = '64px serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff'; ctx.globalAlpha = 1;
         ctx.fillText('🧟', boss.x, boss.y + 24);
         ctx.fillStyle = '#450a0a'; ctx.fillRect(60, 14, W-120, 10);
         ctx.fillStyle = '#f87171'; ctx.fillRect(60, 14, (W-120)*Math.max(boss.hp,0)/boss.max, 10);
         ctx.fillStyle = '#fecaca'; ctx.font = '800 12px system-ui';
         ctx.fillText('BOSS', W/2, 12);
+        ctx.font = '800 18px system-ui';
+        ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.lineWidth = 4;
+        ctx.strokeText(Math.max(boss.hp, 0), boss.x, boss.y - 48);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(Math.max(boss.hp, 0), boss.x, boss.y - 48);
       }
       // 隊列
       const shown = Math.min(n, 30);
@@ -1985,9 +2103,7 @@ const DadaGame = {
     const {cv, ctx, toLocal, destroy:dcv} = makeCanvas(host, W, H);
     const hud = document.createElement('div'); hud.className = 'game-hud';
     hud.innerHTML = `<span>❤ <b id="dd-hp">100</b></span><span>Lv <b id="dd-lv">1</b></span>
-      <span>⏱ <b id="dd-t">${cfg.time}</b></span>
-      <span style="flex:0 0 90px;height:8px;background:#0b1324;border-radius:99px;overflow:hidden;padding:0;border:none">
-        <span id="dd-xp" style="display:block;height:100%;width:0%;background:#f472b6"></span></span>`;
+      <span>⏱ <b id="dd-t">${cfg.time}</b></span>`;
     host.appendChild(hud);
     api.hint('ドラッグで移動！武器は自動で撃つ');
 
@@ -2000,6 +2116,8 @@ const DadaGame = {
     const parts = makeParticles(), floats = makeFloats(), shake = makeShake();
     const timers = [];
     const tufts = Array.from({length:36}, () => [rnd(6,W-6), rnd(6,H-6), rnd(1.5,3.5)]);
+    const gauge = makeSkillGauge(host, '💎', '#f472b6', '#f9a8d4');
+    gauge.set(0, xpNeed);
 
     let joy = null;
     const ac = new AbortController();
@@ -2067,6 +2185,7 @@ const DadaGame = {
         btn.textContent = `${u.t} — ${u.d}`;
         btn.addEventListener('click', () => {
           api.sound('gate'); u.fn();
+          gauge.addSkill(u.t.split(' ')[0]);
           ovl.remove(); paused = false;
         });
         box.appendChild(btn);
@@ -2149,7 +2268,7 @@ const DadaGame = {
         }
       }
       gems = gems.filter(g => !g.got);
-      $('#dd-xp').style.width = clamp(xp/xpNeed*100, 0, 100) + '%';
+      gauge.set(xp, xpNeed);
     }
     function draw(){
       ctx.save();
@@ -2236,9 +2355,7 @@ const CellGame = {
     const W = 360, H = 560;
     const {cv, ctx, toLocal, destroy:dcv} = makeCanvas(host, W, H);
     const hud = document.createElement('div'); hud.className = 'game-hud';
-    hud.innerHTML = `<span>🫀 <b id="cl-hp">100</b></span><span>🌊 WAVE <b id="cl-w">1</b> / ${cfg.waves}</span>
-      <span>🧬<span style="display:inline-block;width:64px;height:8px;background:#0b1324;border-radius:99px;overflow:hidden;vertical-align:middle;margin-left:6px">
-        <span id="cl-evo" style="display:block;height:100%;width:0%;background:#34d399"></span></span></span>`;
+    hud.innerHTML = `<span>🫀 <b id="cl-hp">100</b></span><span>🌊 WAVE <b id="cl-w">1</b> / ${cfg.waves}</span>`;
     host.appendChild(hud);
     api.hint('おしている間ビーム発射！🧬を集めて進化しろ');
 
@@ -2253,6 +2370,8 @@ const CellGame = {
     const parts = makeParticles(), floats = makeFloats(), shake = makeShake();
     const timers = [];
     const dust = Array.from({length:16}, () => [rnd(0,7), rnd(60,250), rnd(0.02,0.09), rnd(1,2.5)]); // [角度,半径,角速度,サイズ]
+    const gauge = makeSkillGauge(host, '🧬', '#34d399', '#a7f3d0');
+    gauge.set(0, evoNeed);
 
     const ac = new AbortController();
     const setAim = e => { const p = toLocal(e); aim = Math.atan2(p.y-C.y, p.x-C.x); };
@@ -2307,6 +2426,7 @@ const CellGame = {
         btn.textContent = `${u.t} — ${u.d}`;
         btn.addEventListener('click', () => {
           u.fn();
+          gauge.addSkill(u.t.split(' ')[0]);
           totalUp++; surge = 2;
           rings.push({r:C.r, a:1}, {r:C.r-16, a:1});
           shake.hit(6, 0.35);
@@ -2383,7 +2503,7 @@ const CellGame = {
         }
       }
       dna = dna.filter(d => !d.got);
-      $('#cl-evo').style.width = clamp(evo/evoNeed*100, 0, 100) + '%';
+      gauge.set(evo, evoNeed);
       // 敵移動(回転しながら接近)
       for (const e of enemies){
         if (e.dead) continue;
