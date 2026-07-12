@@ -165,6 +165,97 @@ canvas{display:block; touch-action:none;}
 .mg-tile.pop{animation:tilepop .18s ease-out;}
 @keyframes tilepop{0%{scale:.5}70%{scale:1.12}100%{scale:1}}
 .mg-tile.drag{transition:none; z-index:3;}
+.mg-pop-txt{
+  position:absolute; font-weight:800; color:#fff; pointer-events:none; z-index:5;
+  text-shadow:0 2px 6px rgba(0,0,0,.6); animation:floatup .8s ease-out forwards;
+}
+@keyframes floatup{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-46px)}}
+.mg-spark{
+  position:absolute; width:6px; height:6px; border-radius:2px; pointer-events:none; z-index:4;
+  animation:sparkfly .5s ease-out forwards;
+}
+@keyframes sparkfly{from{opacity:1;transform:translate(0,0)}to{opacity:0;transform:translate(var(--dx),var(--dy))}}
+/* ---- 紙吹雪(勝利演出) ---- */
+#confetti{position:fixed; inset:0; pointer-events:none; z-index:60; overflow:hidden;}
+#confetti span{
+  position:absolute; top:-14px; width:9px; height:14px; border-radius:2px;
+  animation:confall linear forwards;
+}
+@keyframes confall{
+  from{transform:translate(0,0) rotate(0)}
+  to{transform:translate(var(--dx),105vh) rotate(var(--rot))}
+}
+/* ---- 水ソート演出 ---- */
+.tube{position:relative; background:linear-gradient(105deg,rgba(148,163,184,.16) 0%,rgba(148,163,184,.05) 45%,rgba(255,255,255,.10) 50%,rgba(148,163,184,.05) 55%);}
+.tube::after{
+  content:''; position:absolute; top:4px; left:6px; width:5px; height:70%;
+  background:linear-gradient(rgba(255,255,255,.35),rgba(255,255,255,0));
+  border-radius:99px; pointer-events:none;
+}
+.tube.pouring{z-index:6;}
+.ws-stream{
+  position:absolute; width:7px; border-radius:3px; pointer-events:none; z-index:7;
+  animation:streamin .32s ease-in forwards; transform-origin:top center;
+}
+@keyframes streamin{0%{height:0;opacity:.4}30%{opacity:1}100%{height:var(--h);opacity:.9}}
+.ws-done{position:absolute; font-size:18px; pointer-events:none; z-index:8; animation:floatup .9s ease-out forwards;}
+/* ---- ふぶきサバイバル ---- */
+.sn-wrap{flex:1; display:flex; flex-direction:column; padding:8px 12px; gap:8px; overflow:hidden; position:relative;}
+.sn-stats{display:flex; gap:6px; justify-content:center; flex-wrap:wrap;}
+.sn-stat{
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:6px 10px; font-size:13px; font-weight:700; min-width:64px; text-align:center;
+}
+.sn-stat small{display:block; font-weight:400; font-size:10px; color:var(--sub);}
+.sn-day{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--sub); justify-content:center;}
+.sn-daybar{width:150px; height:8px; background:#0b1324; border-radius:99px; overflow:hidden;}
+.sn-daybar>span{display:block; height:100%; background:linear-gradient(90deg,#38bdf8,#a5f3fc); width:0%;}
+.sn-warn{
+  text-align:center; font-size:13px; font-weight:700; color:#fca5a5; min-height:20px;
+}
+.sn-warn.active{animation:blink 0.8s infinite;}
+@keyframes blink{50%{opacity:.35}}
+.sn-scene{
+  flex:1; min-height:110px; position:relative; border-radius:16px; overflow:hidden;
+  background:linear-gradient(#1e2a4a,#0b1324 70%); border:1px solid var(--line);
+  display:flex; align-items:flex-end; justify-content:center; padding-bottom:14px;
+}
+.sn-fire{font-size:44px; filter:drop-shadow(0 0 18px rgba(251,146,60,.8)); transition:font-size .3s, filter .3s;}
+.sn-people{position:absolute; bottom:10px; left:0; right:0; text-align:center; font-size:20px; letter-spacing:6px;}
+.sn-cold{position:absolute; inset:0; background:radial-gradient(ellipse at center,transparent 30%,rgba(125,211,252,.45)); opacity:0; transition:opacity .5s; pointer-events:none;}
+.sn-snow{position:absolute; inset:0; pointer-events:none;}
+.sn-ctrl{display:flex; flex-direction:column; gap:6px;}
+.sn-row{display:flex; align-items:center; justify-content:space-between; gap:8px;
+  background:var(--card); border:1px solid var(--line); border-radius:12px; padding:7px 12px; font-size:13px;}
+.sn-row .lbl{flex:1; font-weight:600;}
+.sn-row .val{width:30px; text-align:center; font-weight:800;}
+.sn-btn{
+  width:38px; height:34px; border-radius:10px; border:1px solid var(--line);
+  background:#0b1324; color:var(--text); font-size:17px; font-weight:800; cursor:pointer;
+}
+.sn-btn:active{transform:scale(.92);}
+.sn-chop{
+  border:none; border-radius:14px; padding:12px; font-size:16px; font-weight:800;
+  background:linear-gradient(160deg,#166534,#14532d); color:#dcfce7; cursor:pointer;
+  border:1px solid #15803d;
+}
+.sn-chop:active{transform:scale(.96);}
+.sn-event{
+  position:absolute; inset:0; background:rgba(2,6,23,.8); z-index:20;
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+.sn-event .box{
+  background:var(--bg2); border:1px solid var(--line); border-radius:18px;
+  padding:20px; max-width:300px; width:100%; text-align:center; animation:pop .2s ease-out;
+}
+.sn-event .box .t{font-size:15px; font-weight:800; margin-bottom:6px;}
+.sn-event .box .d{font-size:13px; color:var(--sub); line-height:1.6; margin-bottom:14px;}
+.sn-event .box button{
+  display:block; width:100%; margin-top:8px; border:none; border-radius:12px;
+  padding:11px; font-size:14px; font-weight:700; cursor:pointer;
+  background:var(--card); color:var(--text); border:1px solid var(--line);
+}
+.sn-event .box button.main{background:var(--accent); color:#0f172a; border:none;}
 </style>
 </head>
 <body>
@@ -242,12 +333,12 @@ document.addEventListener('touchend', e => {           // ダブルタップ拡�
    ============================================================ */
 const Store = {
   KEY:'mgbox_progress_v1',
-  data:{run:0, water:0, pin:0, merge:0},   // クリア済みステージ数 0..3
+  data:{run:0, water:0, pin:0, merge:0, zombie:0, snow:0, hero:0},   // クリア済みステージ数 0..3
   load(){ try{ Object.assign(this.data, JSON.parse(localStorage.getItem(this.KEY)||'{}')); }catch(e){} },
   save(){ try{ localStorage.setItem(this.KEY, JSON.stringify(this.data)); }catch(e){} },
   cleared(g, stage){ if (stage+1 > this.data[g]) { this.data[g] = stage+1; this.save(); } },
   unlocked(g, stage){ return stage <= this.data[g]; },
-  reset(){ this.data = {run:0, water:0, pin:0, merge:0}; this.save(); }
+  reset(){ this.data = {run:0, water:0, pin:0, merge:0, zombie:0, snow:0, hero:0}; this.save(); }
 };
 Store.load();
 
@@ -289,6 +380,14 @@ const Sound = {
       case 'win':    [523.25,659.25,783.99,1046.5].forEach((f,i)=>this.tone(f,0.14,'triangle',0.18,null,i*0.09)); break;
       case 'fail':   this.tone(240,0.28,'sawtooth',0.14,110); break;
       case 'burn':   this.tone(160,0.3,'sawtooth',0.16,60); break;
+      case 'shoot':  this.tone(880,0.03,'square',0.05,600); break;
+      case 'hit':    this.tone(200,0.06,'square',0.10,120); break;
+      case 'gate':   this.tone(700,0.10,'triangle',0.18,1000); break;
+      case 'coin':   this.tone(1150,0.07,'sine',0.15,1500); break;
+      case 'chop':   this.tone(300,0.06,'square',0.14,180); break;
+      case 'slash':  this.tone(500,0.09,'sawtooth',0.12,180); break;
+      case 'freeze': this.tone(500,0.4,'sine',0.12,180); break;
+      case 'event':  this.tone(600,0.12,'triangle',0.15,800); break;
     }
   }
 };
@@ -298,12 +397,88 @@ document.addEventListener('pointerdown', () => Sound.ensure(), {once:false});
    ゲームメタ情報
    ============================================================ */
 const META = {
-  run:   {ico:'🏃', nm:'ダッシュラン',   ds:'タップでジャンプして障害物をかわせ！'},
-  water: {ico:'🧪', nm:'みずいろソート', ds:'水をそそぎ分けて同じ色にそろえよう'},
-  pin:   {ico:'📌', nm:'ピンをぬけ！',   ds:'正しい順番でピンを抜いてお宝をツボへ'},
-  merge: {ico:'🔢', nm:'かずあわせ',     ds:'同じ数字をドラッグ合体で大きくしよう'},
+  run:    {ico:'🏃', nm:'ダッシュラン',     ds:'タップでジャンプ！コインを集めてゴールへ'},
+  water:  {ico:'🧪', nm:'みずいろソート',   ds:'水をそそぎ分けて同じ色にそろえよう'},
+  pin:    {ico:'📌', nm:'ピンをぬけ！',     ds:'正しい順番でピンを抜いてお宝をツボへ'},
+  merge:  {ico:'🔢', nm:'かずあわせ',       ds:'同じ数字をドラッグ合体で大きくしよう'},
+  zombie: {ico:'🧟', nm:'ゾンビロード',     ds:'ゲートで兵士を増やして大群を撃て！'},
+  snow:   {ico:'❄️', nm:'ふぶきサバイバル', ds:'たき火を絶やさず吹雪の日々を生きのびろ'},
+  hero:   {ico:'⚔️', nm:'パワーヒーロー',   ds:'ゲートで強くなってボスをたおせ！'},
 };
-const GAME_ORDER = ['run','water','pin','merge'];
+const GAME_ORDER = ['run','water','pin','merge','zombie','snow','hero'];
+
+/* ============================================================
+   演出ヘルパ(パーティクル・フロート文字・紙吹雪)
+   ============================================================ */
+function makeParticles(){
+  const ps = [];
+  return {
+    burst(x, y, {n=12, color='#fbbf24', speed=180, life=0.6, size=4, grav=380, up=0}={}){
+      for (let i=0;i<n;i++){
+        const a = rnd(0, Math.PI*2), v = rnd(speed*0.35, speed);
+        ps.push({x, y, vx:Math.cos(a)*v, vy:Math.sin(a)*v - up, life:rnd(life*0.5, life), t:0,
+                 color:Array.isArray(color)?color[ri(0,color.length-1)]:color, size:rnd(size*0.6, size*1.5), grav});
+      }
+    },
+    update(dt){
+      for (let i=ps.length-1;i>=0;i--){
+        const p = ps[i]; p.t += dt;
+        if (p.t > p.life) { ps.splice(i,1); continue; }
+        p.vy += p.grav*dt; p.x += p.vx*dt; p.y += p.vy*dt;
+      }
+    },
+    draw(ctx){
+      ps.forEach(p => {
+        ctx.globalAlpha = 1 - p.t/p.life;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x-p.size/2, p.y-p.size/2, p.size, p.size);
+      });
+      ctx.globalAlpha = 1;
+    }
+  };
+}
+function makeFloats(){
+  const fs = [];
+  return {
+    add(x, y, txt, color='#fff', size=16){ fs.push({x, y, txt, color, size, t:0}); },
+    update(dt){ for (let i=fs.length-1;i>=0;i--){ fs[i].t += dt; if (fs[i].t > 0.9) fs.splice(i,1); } },
+    draw(ctx){
+      fs.forEach(f => {
+        ctx.globalAlpha = 1 - f.t/0.9;
+        ctx.fillStyle = f.color;
+        ctx.font = '800 ' + f.size + 'px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText(f.txt, f.x, f.y - f.t*50);
+      });
+      ctx.globalAlpha = 1;
+    }
+  };
+}
+function makeShake(){
+  let t = 0, mag = 0;
+  return {
+    hit(m=6, d=0.3){ mag = m; t = d; },
+    update(dt){ if (t > 0) t -= dt; },
+    apply(ctx){ if (t > 0) ctx.translate(rnd(-mag, mag), rnd(-mag, mag)); }
+  };
+}
+function confettiBurst(){
+  const old = $('#confetti'); if (old) old.remove();
+  const c = document.createElement('div'); c.id = 'confetti';
+  const cols = ['#38bdf8','#fbbf24','#4ade80','#f87171','#a855f7','#f97316'];
+  for (let i=0;i<44;i++){
+    const s = document.createElement('span');
+    s.style.left = rnd(0,100) + 'vw';
+    s.style.background = cols[ri(0,cols.length-1)];
+    s.style.setProperty('--dx', rnd(-80,80) + 'px');
+    s.style.setProperty('--rot', ri(360,1080) + 'deg');
+    s.style.animationDuration = rnd(1.4,2.6) + 's';
+    s.style.animationDelay = rnd(0,0.5) + 's';
+    c.appendChild(s);
+  }
+  document.body.appendChild(c);
+  setTimeout(() => c.remove(), 3400);
+}
 
 /* ============================================================
    アプリ(画面遷移・リザルト)
@@ -370,7 +545,7 @@ const App = {
   },
   onEnd(res){
     const {g, stage} = this.cur;
-    if (res.win) { Store.cleared(g, stage); Sound.play('win'); } else Sound.play('fail');
+    if (res.win) { Store.cleared(g, stage); Sound.play('win'); confettiBurst(); } else Sound.play('fail');
     const last = stage === 2;
     $('#rs-emo').textContent = res.win ? (last ? '🏆' : '🎉') : '💦';
     $('#rs-ttl').textContent = res.win ? (last ? '全ステージクリア！' : `ステージ${stage+1} クリア！`) : 'しっぱい…';
@@ -445,31 +620,42 @@ function makeCanvas(host, logicalW, logicalH){
    ============================================================ */
 const RunGame = {
   stages: [
-    {v:250, goal:400, gapF:1.05, kinds:['low','wide']},
-    {v:305, goal:550, gapF:0.95, kinds:['low','wide','tall']},
-    {v:360, goal:700, gapF:0.85, kinds:['low','wide','tall','double']},
+    {v:255, goal:800,  gapF:1.10, kinds:['low','wide'], theme:0},
+    {v:305, goal:1100, gapF:1.00, kinds:['low','wide','tall'], theme:1},
+    {v:350, goal:1400, gapF:0.90, kinds:['low','wide','tall','double'], theme:2},
+  ],
+  themes: [
+    {sky:['#1d4ed8','#7dd3fc'], far:'#1e3a8a', near:'#172554', orb:'#fde047', orbY:80, stars:false},
+    {sky:['#4c1d95','#f97316'], far:'#3b0764', near:'#2e1065', orb:'#fb923c', orbY:150, stars:false},
+    {sky:['#020617','#1e3356'], far:'#16213a', near:'#0d1526', orb:'#e2e8f0', orbY:70, stars:true},
   ],
   create(host, stage, api){
     const cfg = this.stages[stage];
+    const th = this.themes[cfg.theme];
     const W = 360, H = 520;
     const {cv, ctx, destroy:dcv} = makeCanvas(host, W, H);
     const hud = document.createElement('div');
     hud.className = 'game-hud';
-    hud.innerHTML = `<span>きょり <b id="run-d">0</b> / ${cfg.goal} m</span>
-      <span style="flex:0 0 120px;height:8px;background:#0b1324;border-radius:99px;overflow:hidden">
+    hud.innerHTML = `<span>🪙 <b id="run-c">0</b></span><span>きょり <b id="run-d">0</b> / ${cfg.goal} m</span>
+      <span style="flex:0 0 110px;height:8px;background:#0b1324;border-radius:99px;overflow:hidden">
         <span id="run-bar" style="display:block;height:100%;width:0%;background:var(--accent)"></span></span>`;
     host.appendChild(hud);
-    api.hint('タップでジャンプ！');
+    api.hint('タップでジャンプ！空中でもう1回で2段ジャンプ');
 
-    const GY = H - 90;                 // 地面のY
-    const G = 1750, JV = -640;
-    const player = {x:70, y:GY, w:30, h:38, vy:0, on:true};
-    let dist = 0;                      // px走行距離
+    const GY = H - 90;
+    const G = 1750, JV = -620;
+    const player = {x:70, y:GY, w:30, h:38, vy:0, jumps:0, spin:0, dead:false};
+    let dist = 0;
     const goalPx = cfg.goal * 8;
-    let obstacles = [];                // {x,w,h,type}
-    let nextSpawn = 300;
+    let obstacles = [], coins = [];
+    let nextSpawn = 300, nextCoin = 500, coinCnt = 0;
     let over = false, raf = 0, tPrev = 0, runT = 0;
-    let buffered = 0;                  // 先行入力ジャンプ
+    const parts = makeParticles(), shake = makeShake();
+    const stars = [];
+    if (th.stars) for (let i=0;i<40;i++) stars.push([rnd(0,W), rnd(0,GY-120), rnd(0.6,1.8)]);
+    // 山シルエット(2層・繰り返しパターン)
+    const mkRidge = (n, hMin, hMax) => Array.from({length:n}, () => rnd(hMin, hMax));
+    const farR = mkRidge(6, 60, 130), nearR = mkRidge(5, 30, 80);
 
     function spawn(){
       const kind = cfg.kinds[ri(0, cfg.kinds.length-1)];
@@ -487,10 +673,26 @@ const RunGame = {
       });
       nextSpawn = cfg.v * cfg.gapF * rnd(0.85, 1.7);
     }
+    function spawnCoins(){
+      if (Math.random() < 0.5) {                       // 直線
+        for (let i=0;i<3;i++) coins.push({x:W+40+i*34, y:GY-46, got:false});
+      } else {                                          // アーチ
+        for (let i=0;i<5;i++){
+          const t = i/4;
+          coins.push({x:W+40+i*36, y:GY-46-Math.sin(t*Math.PI)*84, got:false});
+        }
+      }
+      nextCoin = rnd(340, 560);
+    }
     function jump(){
       if (over) return;
-      if (player.on) { player.vy = JV; player.on = false; api.sound('jump'); }
-      else buffered = 0.12;
+      if (player.jumps < 2) {
+        player.vy = JV * (player.jumps === 1 ? 0.92 : 1);
+        if (player.jumps === 1) player.spin = 1;        // 2段目は回転
+        player.jumps++;
+        api.sound('jump');
+        parts.burst(player.x, player.y, {n:5, color:'#94a3b8', speed:80, life:0.35, size:3, grav:200});
+      }
     }
     const ac = new AbortController();
     cv.addEventListener('pointerdown', e => { e.preventDefault(); jump(); }, {signal:ac.signal});
@@ -502,40 +704,85 @@ const RunGame = {
       runT += dt;
       const px = cfg.v * dt;
       dist += px;
-      // プレイヤー
-      if (buffered > 0) { buffered -= dt; if (player.on) { buffered = 0; player.vy = JV; player.on = false; api.sound('jump'); } }
+      const wasAir = player.jumps > 0;
       player.vy += G * dt;
       player.y += player.vy * dt;
-      if (player.y >= GY) { player.y = GY; player.vy = 0; player.on = true; }
-      // 障害物
+      if (player.spin > 0) player.spin = Math.max(0, player.spin - dt*2.2);
+      if (player.y >= GY) {
+        player.y = GY; player.vy = 0; player.jumps = 0; player.spin = 0;
+        if (wasAir) parts.burst(player.x, GY, {n:6, color:'#64748b', speed:90, life:0.3, size:3, grav:150});
+      }
       nextSpawn -= px;
-      if (nextSpawn <= 0 && dist < goalPx - 260) spawn();
+      if (nextSpawn <= 0 && dist < goalPx - 300) spawn();
+      nextCoin -= px;
+      if (nextCoin <= 0 && dist < goalPx - 300) spawnCoins();
       obstacles.forEach(o => o.x -= px);
       obstacles = obstacles.filter(o => o.x + o.w > -20);
+      coins.forEach(c => c.x -= px);
+      coins = coins.filter(c => c.x > -20 && !c.got);
+      // コイン取得
+      for (const c of coins){
+        const dx = c.x - player.x, dy = c.y - (player.y - player.h/2);
+        if (dx*dx + dy*dy < 30*30) {
+          c.got = true; coinCnt++; api.sound('coin');
+          parts.burst(c.x, c.y, {n:8, color:'#fde047', speed:130, life:0.4, size:3, grav:250});
+          $('#run-c').textContent = coinCnt;
+        }
+      }
       // 当たり判定(少し甘め)
       const m = 6;
       const pl = player.x - player.w/2 + m, pr = player.x + player.w/2 - m, pt = player.y - player.h + m;
       for (const o of obstacles){
         if (pr > o.x && pl < o.x + o.w && player.y - 2 > GY - o.h + m && pt < GY) {
-          finish(false, `きろく: ${Math.floor(dist/8)} m`); return;
+          player.dead = true;
+          shake.hit(7, 0.4);
+          parts.burst(player.x, player.y - 18, {n:26, color:['#f87171','#fbbf24','#e2e8f0'], speed:260, life:0.7, size:5, grav:500, up:120});
+          finish(false, `きろく: ${Math.floor(dist/8)} m / 🪙${coinCnt}`);
+          return;
         }
       }
-      if (dist >= goalPx) finish(true, `タイム: ${runT.toFixed(1)} 秒`);
+      if (dist >= goalPx) finish(true, `タイム: ${runT.toFixed(1)} 秒 / 🪙${coinCnt}まい`);
       $('#run-d').textContent = Math.min(cfg.goal, Math.floor(dist/8));
       $('#run-bar').style.width = clamp(dist/goalPx*100,0,100) + '%';
     }
+    function ridge(arr, base, speed, color){
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(-10, GY);
+      const seg = 90;
+      const total = arr.length * seg;
+      for (let sx=-10; sx<=W+seg; sx+=8){
+        const wx = (sx + dist*speed) % total;
+        const i = Math.floor(wx/seg), f = (wx%seg)/seg;
+        const h1 = arr[i % arr.length], h2 = arr[(i+1) % arr.length];
+        const hh = h1 + (h2-h1) * (0.5 - Math.cos(f*Math.PI)/2);
+        ctx.lineTo(sx, base - hh);
+      }
+      ctx.lineTo(W+10, GY); ctx.closePath(); ctx.fill();
+    }
     function draw(){
-      ctx.clearRect(0,0,W,H);
-      // 背景
-      ctx.fillStyle = '#0f172a'; ctx.fillRect(0,0,W,H);
-      ctx.fillStyle = 'rgba(148,163,184,.12)';
+      ctx.save();
+      shake.apply(ctx);
+      // 空
+      const sky = ctx.createLinearGradient(0,0,0,GY);
+      sky.addColorStop(0, th.sky[0]); sky.addColorStop(1, th.sky[1]);
+      ctx.fillStyle = sky; ctx.fillRect(-10,-10,W+20,GY+10);
+      if (th.stars) { ctx.fillStyle = '#e2e8f0'; stars.forEach(s => ctx.fillRect(s[0], s[1], s[2], s[2])); }
+      // 太陽/月
+      ctx.fillStyle = th.orb; ctx.beginPath(); ctx.arc(W-70, th.orbY, 26, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.15)'; ctx.beginPath(); ctx.arc(W-70, th.orbY, 36, 0, 7); ctx.fill();
+      // 山(パララックス2層)
+      ridge(farR, GY, 0.15, th.far);
+      ridge(nearR, GY, 0.35, th.near);
+      // 雲
+      ctx.fillStyle = 'rgba(226,232,240,.16)';
       for (let i=0;i<4;i++){
-        const cx = ((i*140 - dist*0.25) % (W+120) + W+120) % (W+120) - 60;
-        ctx.beginPath(); ctx.ellipse(cx, 70+i*28, 34, 12, 0, 0, 7); ctx.fill();
+        const cx = ((i*150 - dist*0.25) % (W+140) + W+140) % (W+140) - 70;
+        ctx.beginPath(); ctx.ellipse(cx, 66+i*30, 38, 13, 0, 0, 7); ctx.fill();
       }
       // 地面
-      ctx.fillStyle = '#1e293b'; ctx.fillRect(0, GY, W, H-GY);
-      ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, GY, W, 3);
+      ctx.fillStyle = '#1e293b'; ctx.fillRect(-10, GY, W+20, H-GY+10);
+      ctx.fillStyle = '#38bdf8'; ctx.fillRect(-10, GY, W+20, 3);
       ctx.fillStyle = 'rgba(56,189,248,.25)';
       for (let i=0;i<8;i++){
         const lx = ((i*70 - dist) % (W+70) + W+70) % (W+70) - 35;
@@ -543,9 +790,10 @@ const RunGame = {
       }
       // ゴール旗
       const gx = goalPx - dist + player.x;
-      if (gx < W + 30) {
-        ctx.font = '34px serif'; ctx.textAlign = 'center'; ctx.fillText('🚩', gx, GY - 6);
-      }
+      if (gx < W + 30) { ctx.font = '36px serif'; ctx.textAlign = 'center'; ctx.fillText('🚩', gx, GY - 6); }
+      // コイン
+      ctx.font = '20px serif'; ctx.textAlign = 'center';
+      coins.forEach(c => { if (!c.got) ctx.fillText('🪙', c.x, c.y + 7 + Math.sin(runT*5 + c.x)*2); });
       // 障害物
       obstacles.forEach(o => {
         if (o.type === 'tall') { ctx.font = (o.h+6)+'px serif'; ctx.textAlign='center'; ctx.fillText('🌵', o.x+o.w/2, GY-2); }
@@ -555,25 +803,33 @@ const RunGame = {
           ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(o.x, GY-o.h, o.w, 5);
         }
       });
-      // プレイヤー(🏃は左向き絵文字なので反転)
-      ctx.save();
-      ctx.translate(player.x, player.y);
-      ctx.scale(-1,1);
-      ctx.font = '38px serif'; ctx.textAlign = 'center';
-      const bob = player.on ? Math.sin(runT*22)*2 : 0;
-      ctx.fillText('🏃', 0, -2 + bob);
+      // プレイヤー(🏃は左向き絵文字なので反転・2段ジャンプで回転)
+      if (!player.dead) {
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        if (player.spin > 0) ctx.rotate((1-player.spin) * Math.PI * 2);
+        ctx.scale(-1,1);
+        ctx.font = '38px serif'; ctx.textAlign = 'center';
+        const bob = player.jumps === 0 ? Math.sin(runT*22)*2 : 0;
+        ctx.fillText('🏃', 0, -2 + bob);
+        ctx.restore();
+        if (player.jumps === 0 && Math.random() < 0.3)
+          parts.burst(player.x-12, GY, {n:1, color:'#475569', speed:40, life:0.3, size:3, grav:60});
+      }
+      parts.draw(ctx);
       ctx.restore();
     }
     function finish(win, msg){
       if (over) return; over = true;
       api.sound(win ? 'collect' : 'fail');
-      setTimeout(() => api.end({win, msg}), win ? 350 : 500);
+      setTimeout(() => api.end({win, msg}), win ? 400 : 700);
     }
     function loop(t){
       raf = requestAnimationFrame(loop);
       const dt = Math.min((t - tPrev)/1000 || 0, 1/30);
       tPrev = t;
       if (!over) update(dt);
+      parts.update(dt); shake.update(dt);
       draw();
     }
     raf = requestAnimationFrame(t => { tPrev = t; raf = requestAnimationFrame(loop); });
@@ -585,7 +841,7 @@ const RunGame = {
    ゲーム2: みずいろソート(DOM)
    ============================================================ */
 const WaterGame = {
-  stages: [ {colors:3, empty:2}, {colors:4, empty:2}, {colors:5, empty:2} ],
+  stages: [ {colors:4, empty:2}, {colors:6, empty:2}, {colors:7, empty:2} ],
   CAP: 4,
   PALETTE: ['#ef4444','#3b82f6','#22c55e','#eab308','#a855f7','#f97316','#06b6d4'],
   /* --- 解けるかチェック(DFS) --- */
@@ -638,8 +894,8 @@ const WaterGame = {
     const cfg = this.stages[stage];
     const initial = this.generate(cfg);
     let tubes = initial.map(a=>a.slice());
-    let sel = -1, moves = 0, over = false;
-    const undoStack = [];
+    let sel = -1, moves = 0, over = false, busy = false;
+    const undoStack = [], timers = [];
     const CAP = this.CAP, PAL = this.PALETTE;
 
     const wrap = document.createElement('div'); wrap.className = 'ws-wrap';
@@ -675,41 +931,77 @@ const WaterGame = {
       return !to.length || to[to.length-1] === from[from.length-1];
     }
     function tap(i){
-      if (over) return;
+      if (over || busy) return;
       if (sel === -1) {
         if (tubes[i].length) { sel = i; api.sound('tap'); }
         render(); return;
       }
       if (sel === i) { sel = -1; render(); return; }
-      if (canPour(sel, i)) {
-        undoStack.push(tubes.map(a=>a.slice()));
-        const from = tubes[sel], to = tubes[i], c = from[from.length-1];
-        while (from.length && from[from.length-1] === c && to.length < CAP) to.push(from.pop());
-        moves++; sel = -1;
-        api.sound('pour');
-        render(i);
-        checkWin();
-      } else {
+      if (canPour(sel, i)) pourAnim(sel, i);
+      else {
         sel = tubes[i].length ? i : -1;   // 注げない → 選び直し
         api.sound('tap');
         render();
       }
+    }
+    // 傾けて注ぐアニメーション → データ反映
+    function pourAnim(si, di){
+      busy = true;
+      const srcEl = area.children[si], dstEl = area.children[di];
+      const c = tubes[si][tubes[si].length-1];
+      const sR = srcEl.getBoundingClientRect(), dR = dstEl.getBoundingClientRect(), wR = wrap.getBoundingClientRect();
+      const leftSide = sR.left <= dR.left;
+      srcEl.classList.add('pouring');
+      srcEl.style.transformOrigin = '50% 92%';
+      srcEl.style.transition = 'transform .26s ease';
+      srcEl.style.transform = `translate(${dR.left - sR.left + (leftSide ? -30 : 30)}px,${dR.top - sR.top - 70}px) rotate(${leftSide ? 72 : -72}deg)`;
+      const stream = document.createElement('div');
+      stream.className = 'ws-stream';
+      stream.style.left = (dR.left + dR.width/2 - wR.left - 3.5) + 'px';
+      stream.style.top  = (dR.top - wR.top - 26) + 'px';
+      stream.style.setProperty('--h', '44px');
+      stream.style.background = PAL[c];
+      timers.push(setTimeout(() => { if (!over) wrap.appendChild(stream); api.sound('pour'); }, 130));
+      timers.push(setTimeout(() => {
+        stream.remove();
+        if (over) return;
+        undoStack.push(tubes.map(a=>a.slice()));
+        const from = tubes[si], to = tubes[di];
+        while (from.length && from[from.length-1] === c && to.length < CAP) to.push(from.pop());
+        moves++; sel = -1; busy = false;
+        render(di);
+        // コップ完成のキラキラ
+        const tu = tubes[di];
+        if (tu.length === CAP && tu.every(x=>x===tu[0])) {
+          const el = area.children[di], eR = el.getBoundingClientRect(), wR2 = wrap.getBoundingClientRect();
+          for (let k=0;k<3;k++){
+            const sp = document.createElement('span');
+            sp.className = 'ws-done'; sp.textContent = '✨';
+            sp.style.left = (eR.left - wR2.left + 6 + k*14) + 'px';
+            sp.style.top  = (eR.top - wR2.top - 8 + (k%2)*10) + 'px';
+            wrap.appendChild(sp);
+            timers.push(setTimeout(() => sp.remove(), 900));
+          }
+          api.sound('collect');
+        }
+        checkWin();
+      }, 430));
     }
     function checkWin(){
       const done = tubes.every(tu => tu.length===0 || (tu.length===CAP && tu.every(c=>c===tu[0])));
       if (done) { over = true; setTimeout(() => api.end({win:true, msg:`手数: ${moves}`}), 450); }
     }
     bUndo.addEventListener('click', () => {
-      if (over || !undoStack.length) return;
+      if (over || busy || !undoStack.length) return;
       tubes = undoStack.pop(); moves++; sel = -1; api.sound('tap'); render();
     });
     bReset.addEventListener('click', () => {
-      if (over) return;
+      if (over || busy) return;
       tubes = initial.map(a=>a.slice()); undoStack.length = 0; moves = 0; sel = -1;
       api.sound('tap'); render();
     });
     render();
-    return {destroy(){ over = true; }};
+    return {destroy(){ over = true; timers.forEach(clearTimeout); }};
   }
 };
 
@@ -719,25 +1011,16 @@ const WaterGame = {
 const PinGame = {
   W:320, H:480,
   stages: [
-    { // S1: 溶岩をツボに入れないように、正しいピンだけを抜く
-      walls:[[60,40,60,440],[260,40,260,440],[60,440,260,440],[90,395,90,440],[230,395,230,440]],
-      pot:{x1:92,x2:228,y1:408,y2:438},
-      drains:[],
-      pins:[[70,150,190,150],[170,300,230,300]],
-      gold:[[105,136],[130,136],[155,136]],
-      lava:[[190,287],[213,287]],
-      hint:'溶岩🔥をツボに入れるな！'
-    },
-    { // S2: 先に溶岩を捨ててからお宝を落とす(順番)
+    { // S1: 先に溶岩を捨ててからお宝を落とす(順番)
       walls:[[60,40,60,440],[260,40,260,440],[60,440,218,440],[110,395,110,440],[210,395,210,440]],
       pot:{x1:112,x2:208,y1:408,y2:438},
       drains:[[218,260]],
       pins:[[100,120,220,120],[62,240,255,320]],
       gold:[[130,106],[160,106],[190,106]],
       lava:[[212,281],[233,293]],
-      hint:'ぬく順番がだいじ！'
+      hint:'ぬく順番がだいじ！溶岩🔥にふれるな'
     },
-    { // S3: 3本のピン。溶岩を捨て→お宝を棚に→棚を開ける
+    { // S2: 3本のピン。溶岩を捨て→お宝を棚に→棚を開ける
       walls:[[60,40,60,440],[260,40,260,440],[102,440,260,440],[110,395,110,440],[210,395,210,440],[112,312,112,340],[208,312,208,340]],
       pot:{x1:112,x2:208,y1:408,y2:438},
       drains:[[60,102]],
@@ -745,6 +1028,15 @@ const PinGame = {
       gold:[[140,76],[175,76],[135,326],[180,326]],
       lava:[[78,258],[98,250]],
       hint:'3本のピン、正しい順で！'
+    },
+    { // S3: 4本のピン。左右2つの溶岩を両方すててからお宝を通す
+      walls:[[60,40,60,440],[260,40,260,440],[102,440,218,440],[110,395,110,440],[210,395,210,440],[112,312,112,340],[208,312,208,340]],
+      pot:{x1:112,x2:208,y1:408,y2:438},
+      drains:[[60,102],[218,260]],
+      pins:[[90,90,230,90],[62,180,255,250],[100,340,220,340],[190,290,65,330]],
+      gold:[[140,76],[175,76],[135,326],[180,326]],
+      lava:[[212,220],[233,229],[80,311],[100,306]],
+      hint:'4本のピン！溶岩を全部すてろ'
     }
   ],
   create(host, stage, api){
@@ -763,9 +1055,10 @@ const PinGame = {
     S.gold.forEach(p => balls.push({x:p[0]+rnd(-1,1), y:p[1], vx:0, vy:0, r:10, kind:'gold', dead:false, still:0}));
     S.lava.forEach(p => balls.push({x:p[0]+rnd(-1,1), y:p[1], vx:0, vy:0, r:9,  kind:'lava', dead:false, still:0}));
     let pins = S.pins.map(p => ({seg:p, pulled:false, anim:0}));
-    let collected = 0, over = false, raf = 0, tPrev = 0;
+    let collected = 0, over = false, raf = 0, tPrev = 0, gameT = 0;
     let boomAt = null;
     const timers = [];
+    const parts = makeParticles(), shake = makeShake();
 
     function segCollide(b, s){
       const dx = s[2]-s[0], dy = s[3]-s[1];
@@ -802,8 +1095,10 @@ const PinGame = {
     function burn(gb){
       if (over) return; over = true;
       boomAt = {x:gb.x, y:gb.y};
+      shake.hit(7, 0.4);
+      parts.burst(gb.x, gb.y, {n:24, color:['#f97316','#dc2626','#fde047'], speed:240, life:0.7, size:5, up:100});
       api.sound('burn');
-      timers.push(setTimeout(() => api.end({win:false, msg:'お宝が溶岩にふれてしまった…'}), 800));
+      timers.push(setTimeout(() => api.end({win:false, msg:'お宝が溶岩にふれてしまった…'}), 900));
     }
     function fail(msg){
       if (over) return; over = true;
@@ -832,6 +1127,7 @@ const PinGame = {
         if (b.x > P.x1 && b.x < P.x2 && b.y > P.y1 && b.y < P.y2) {
           if (b.kind === 'gold') {
             b.dead = true; collected++; api.sound('collect');
+            parts.burst(b.x, b.y, {n:14, color:['#fde047','#fbbf24','#fff'], speed:160, life:0.6, size:4, up:120});
             $('#pin-c').textContent = collected;
             if (collected === S.gold.length) {
               over = true;
@@ -857,7 +1153,22 @@ const PinGame = {
     }
     function draw(){
       ctx.clearRect(0,0,W,H);
-      ctx.fillStyle = '#0b1220'; ctx.fillRect(0,0,W,H);
+      ctx.save();
+      shake.apply(ctx);
+      // ダンジョン背景(レンガ)
+      ctx.fillStyle = '#0b1220'; ctx.fillRect(-10,-10,W+20,H+20);
+      ctx.fillStyle = 'rgba(71,85,105,.14)';
+      for (let ry=0; ry<H; ry+=28){
+        const off = (ry/28)%2 ? 24 : 0;
+        for (let rx=-24+off; rx<W; rx+=48) ctx.fillRect(rx+1, ry+1, 46, 26);
+      }
+      // たいまつ(ゆらめき)
+      const fl = 15 + Math.sin(gameT*9)*2;
+      ctx.font = fl + 'px serif'; ctx.textAlign = 'center';
+      ctx.fillText('🔥', 40, 70); ctx.fillText('🔥', 280, 70);
+      ctx.fillStyle = 'rgba(251,146,60,' + (0.10 + Math.sin(gameT*9)*0.03) + ')';
+      ctx.beginPath(); ctx.arc(40, 64, 30, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(280, 64, 30, 0, 7); ctx.fill();
       // 排出口(溶岩だまり)
       S.drains.forEach(d => {
         const g = ctx.createLinearGradient(0, 448, 0, 480);
@@ -866,12 +1177,18 @@ const PinGame = {
         ctx.font = '15px serif'; ctx.textAlign='center';
         ctx.fillText('🔥', (d[0]+d[1])/2, 468);
       });
-      // ツボ
+      // ツボ(光る収集ゾーン)
       const P = S.pot;
-      ctx.fillStyle = 'rgba(251,191,36,.10)';
-      ctx.fillRect(P.x1, P.y1-12, P.x2-P.x1, P.y2-P.y1+12);
-      ctx.font = '17px serif'; ctx.textAlign='center';
+      const pg = ctx.createLinearGradient(0, P.y1-16, 0, P.y2);
+      pg.addColorStop(0, 'rgba(251,191,36,0)');
+      pg.addColorStop(1, 'rgba(251,191,36,' + (0.20 + Math.sin(gameT*4)*0.07) + ')');
+      ctx.fillStyle = pg;
+      ctx.fillRect(P.x1, P.y1-16, P.x2-P.x1, P.y2-P.y1+16);
+      ctx.font = '20px serif'; ctx.textAlign='center';
       ctx.fillText('🏺', (P.x1+P.x2)/2, P.y2-6);
+      ctx.font = '11px serif';
+      ctx.fillText('✨', P.x1+14, P.y1-2 + Math.sin(gameT*3)*3);
+      ctx.fillText('✨', P.x2-14, P.y1-4 + Math.cos(gameT*3.4)*3);
       // 壁
       ctx.strokeStyle = '#475569'; ctx.lineWidth = 8; ctx.lineCap = 'round';
       S.walls.forEach(w => { ctx.beginPath(); ctx.moveTo(w[0],w[1]); ctx.lineTo(w[2],w[3]); ctx.stroke(); });
@@ -900,14 +1217,19 @@ const PinGame = {
           ctx.fillStyle = 'rgba(255,255,255,.7)';
           ctx.beginPath(); ctx.arc(b.x-3, b.y-3, 2.6, 0, 7); ctx.fill();
         } else {
+          const pulse = 1 + Math.sin(gameT*7 + b.x)*0.08;
+          ctx.fillStyle = 'rgba(249,115,22,.25)';
+          ctx.beginPath(); ctx.arc(b.x, b.y, b.r*1.7*pulse, 0, 7); ctx.fill();
           ctx.fillStyle = '#f97316';
           ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
           ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 2.5; ctx.stroke();
           ctx.fillStyle = '#fde047';
-          ctx.beginPath(); ctx.arc(b.x, b.y, b.r*0.35, 0, 7); ctx.fill();
+          ctx.beginPath(); ctx.arc(b.x, b.y, b.r*0.35*pulse, 0, 7); ctx.fill();
         }
       });
-      if (boomAt) { ctx.font = '34px serif'; ctx.textAlign='center'; ctx.fillText('💥', boomAt.x, boomAt.y+10); }
+      parts.draw(ctx);
+      if (boomAt) { ctx.font = '36px serif'; ctx.textAlign='center'; ctx.fillText('💥', boomAt.x, boomAt.y+10); }
+      ctx.restore();
     }
     const ac = new AbortController();
     cv.addEventListener('pointerdown', e => {
@@ -932,7 +1254,17 @@ const PinGame = {
       raf = requestAnimationFrame(loop);
       const dt = Math.min((t-tPrev)/1000 || 0, 1/30);
       tPrev = t;
-      if (!over || boomAt) { if (!over) step(dt); }
+      gameT += dt;
+      if (!over) step(dt);
+      // お宝のきらめき
+      if (Math.random() < 0.08) {
+        const alive = balls.filter(b => !b.dead && b.kind === 'gold');
+        if (alive.length) {
+          const g = alive[ri(0, alive.length-1)];
+          parts.burst(g.x + rnd(-6,6), g.y + rnd(-6,6), {n:1, color:'#fff', speed:20, life:0.4, size:2, grav:-30});
+        }
+      }
+      parts.update(dt); shake.update(dt);
       draw();
     }
     raf = requestAnimationFrame(t => { tPrev = t; raf = requestAnimationFrame(loop); });
@@ -944,11 +1276,11 @@ const PinGame = {
    ゲーム4: かずあわせ(DOM・ドラッグ合体)
    ============================================================ */
 const MergeGame = {
-  N: 4,
+  N: 5,
   stages: [
-    {target:32,  moves:30, seed:[2,2,2,2,4,4,4,8,8,4]},
-    {target:64,  moves:45, seed:[2,2,2,4,4,4,8,8,16,16,4,8]},
-    {target:128, moves:65, seed:[2,2,4,4,4,8,8,8,16,16,32,4,8,16]},
+    {target:128, moves:80,  seed:[2,2,2,2,4,4,4,4,8,8,8,16,16,2,4,8]},
+    {target:256, moves:110, seed:[2,2,2,4,4,4,4,8,8,8,16,16,16,32,32,4,8,16]},
+    {target:512, moves:140, seed:[2,2,4,4,4,4,8,8,8,8,16,16,16,32,32,32,64,8,16,64]},
   ],
   hue(v){ return (Math.log2(v)*36) % 360; },
   create(host, stage, api){
@@ -982,10 +1314,35 @@ const MergeGame = {
     }
     const styleTile = (el, v) => {
       const h = (Math.log2(v)*36) % 360;
-      el.style.background = `hsl(${h} 72% 60%)`;
+      const tier = Math.log2(v);
+      el.style.background = `linear-gradient(160deg, hsl(${h} 80% 68%), hsl(${h} 72% 52%))`;
+      el.style.boxShadow = tier >= 5
+        ? `0 3px 0 rgba(0,0,0,.3), 0 0 ${tier*3}px hsl(${h} 90% 60% / .7)`
+        : '0 3px 0 rgba(0,0,0,.3)';
       el.style.fontSize = (v >= 128 ? Math.floor(CS*0.32) : Math.floor(CS*0.4)) + 'px';
       el.textContent = v;
     };
+    function mergeFx(r, c, v){
+      const x = PAD + c*(CS+GAP) + CS/2, y = PAD + r*(CS+GAP) + CS/2;
+      const h = (Math.log2(v)*36) % 360;
+      for (let k=0;k<8;k++){
+        const sp = document.createElement('span');
+        sp.className = 'mg-spark';
+        sp.style.left = x+'px'; sp.style.top = y+'px';
+        sp.style.background = `hsl(${h} 85% 65%)`;
+        sp.style.setProperty('--dx', rnd(-46,46)+'px');
+        sp.style.setProperty('--dy', rnd(-46,46)+'px');
+        board.appendChild(sp);
+        setTimeout(() => sp.remove(), 520);
+      }
+      const ft = document.createElement('div');
+      ft.className = 'mg-pop-txt';
+      ft.textContent = '+' + v;
+      ft.style.left = (x-20)+'px'; ft.style.top = (y-14)+'px';
+      ft.style.fontSize = Math.floor(CS*0.34)+'px';
+      board.appendChild(ft);
+      setTimeout(() => ft.remove(), 820);
+    }
     function place(t, r, c, anim=true){
       t.r = r; t.c = c;
       if (!anim) t.el.classList.add('drag');
@@ -1015,7 +1372,9 @@ const MergeGame = {
       if (!es.length) return;
       const [r,c] = es[ri(0, es.length-1)];
       let pool = [2,4];
-      if (maxV >= 64) pool = [8,16]; else if (maxV >= 32) pool = [4,8];
+      if (maxV >= 256) pool = [16,32];
+      else if (maxV >= 128) pool = [8,16];
+      else if (maxV >= 32) pool = [4,8];
       addTile(r, c, pool[ri(0,1)]);
     }
     function useMove(){
@@ -1072,6 +1431,7 @@ const MergeGame = {
         removeTile(t); removeTile(other);
         const nt = addTile(nr, nc, t.v*2);
         nt.el.classList.add('pop');
+        mergeFx(nr, nc, t.v*2);
         api.sound('merge');
         spawn();
         useMove();
@@ -1100,9 +1460,674 @@ const MergeGame = {
 };
 
 /* ============================================================
+   ゲーム5: ゾンビロード(Canvas・隊列シューター)
+   左右ドラッグで隊列を動かし、ゲートで増員、ゾンビとボスを撃つ。
+   ============================================================ */
+const ZombieGame = {
+  stages: [
+    {len:55, spawn:1.25, ehp:3, espd:52, boss:260},
+    {len:70, spawn:1.00, ehp:5, espd:60, boss:480},
+    {len:85, spawn:0.85, ehp:8, espd:68, boss:760},
+  ],
+  create(host, stage, api){
+    const cfg = this.stages[stage];
+    const W = 360, H = 560;
+    const {cv, ctx, toLocal, destroy:dcv} = makeCanvas(host, W, H);
+    const hud = document.createElement('div'); hud.className = 'game-hud';
+    hud.innerHTML = `<span>🪖 <b id="zb-n">6</b> 人</span>
+      <span style="flex:0 0 120px;height:8px;background:#0b1324;border-radius:99px;overflow:hidden">
+        <span id="zb-bar" style="display:block;height:100%;width:0%;background:var(--accent)"></span></span>`;
+    host.appendChild(hud);
+    api.hint('左右にドラッグ！ゲートで兵士を増やせ');
+
+    const SY = 468, ROAD = 92;
+    let t = 0, n = 6, sx = W/2;
+    let bullets = [], enemies = [], gates = [], pickups = [];
+    let fireCd = 0, spawnCd = 1.0, gateCd = 2.5;
+    let boss = null, over = false, raf = 0, tPrev = 0;
+    const parts = makeParticles(), floats = makeFloats(), shake = makeShake();
+
+    const ac = new AbortController();
+    let dragging = false;
+    cv.addEventListener('pointerdown', e => { e.preventDefault(); dragging = true; sx = clamp(toLocal(e).x, 40, W-40); }, {signal:ac.signal});
+    cv.addEventListener('pointermove', e => { if (dragging) sx = clamp(toLocal(e).x, 40, W-40); }, {signal:ac.signal});
+    window.addEventListener('pointerup', () => dragging = false, {signal:ac.signal});
+
+    function mkGate(){
+      const good = Math.random() < 0.28 ? {op:'×', v:2} : {op:'+', v:ri(4,9)};
+      const bad  = Math.random() < 0.28 ? {op:'÷', v:2} : {op:'-', v:ri(3,8)};
+      const L = Math.random() < 0.5;
+      gates.push({y:-46, l:L?good:bad, r:L?bad:good, used:false});
+      gateCd = rnd(6, 8.5);
+    }
+    function mkEnemy(){
+      const tank = stage > 0 && Math.random() < 0.25;
+      const hp = tank ? cfg.ehp*2 : cfg.ehp;
+      enemies.push({x:rnd(50, W-50), y:-30, hp, max:hp, spd:(tank?cfg.espd*0.7:cfg.espd)*rnd(0.9,1.2), big:tank});
+      spawnCd = cfg.spawn * rnd(0.7, 1.3);
+    }
+    function applyGate(o){
+      const goodOp = o.op === '+' || o.op === '×';
+      if (o.op === '+') n += o.v;
+      if (o.op === '-') n -= o.v;
+      if (o.op === '×') n *= o.v;
+      if (o.op === '÷') n = Math.ceil(n / o.v);
+      n = Math.min(n, 80);
+      floats.add(sx, SY-52, (goodOp?'+':'') + o.op + o.v, goodOp ? '#4ade80' : '#f87171', 20);
+      api.sound(goodOp ? 'gate' : 'hit');
+      if (!goodOp) shake.hit(4, 0.2);
+      if (n <= 0) return finish(false, 'ぜんめつ… ' + Math.floor(t) + '秒');
+      $('#zb-n').textContent = n;
+    }
+    function soldierPos(i){
+      const col = i % 6, row = Math.floor(i / 6);
+      return [sx + (col - 2.5) * 17, SY + row * 15];
+    }
+    function finish(win, msg){
+      if (over) return; over = true;
+      api.sound(win ? 'collect' : 'fail');
+      timers.push(setTimeout(() => api.end({win, msg}), win ? 500 : 700));
+    }
+    const timers = [];
+
+    function update(dt){
+      t += dt;
+      const inBossZone = t >= cfg.len;
+      if (!inBossZone && t < cfg.len - 5) {
+        spawnCd -= dt; if (spawnCd <= 0) mkEnemy();
+        gateCd  -= dt; if (gateCd  <= 0) mkGate();
+      }
+      if (inBossZone && !boss) boss = {x:W/2, y:-100, hp:cfg.boss, max:cfg.boss, spd:11};
+      // 射撃
+      fireCd -= dt;
+      const interval = 1 / Math.min(n * 2, 50);
+      while (fireCd <= 0) {
+        fireCd += interval;
+        const i = ri(0, Math.min(n, 30) - 1);
+        const p = soldierPos(i);
+        bullets.push({x:p[0], y:p[1]-12});
+        if (Math.random() < 0.25) api.sound('shoot');
+        parts.burst(p[0], p[1]-14, {n:1, color:'#fde047', speed:30, life:0.08, size:3, grav:0});
+      }
+      bullets.forEach(b => b.y -= 560 * dt);
+      bullets = bullets.filter(b => b.y > -20 && !b.hit);
+      // 敵
+      enemies.forEach(e => e.y += e.spd * dt);
+      gates.forEach(g => g.y += ROAD * dt);
+      pickups.forEach(p => p.y += 78 * dt);
+      // 弾 vs 敵/ボス
+      for (const b of bullets){
+        for (const e of enemies){
+          const r = e.big ? 20 : 14;
+          if (e.hp > 0 && Math.abs(b.x - e.x) < r && Math.abs(b.y - e.y) < r) {
+            e.hp--; b.hit = true;
+            parts.burst(b.x, b.y, {n:2, color:'#a3e635', speed:60, life:0.25, size:3, grav:150});
+            if (e.hp <= 0) {
+              parts.burst(e.x, e.y, {n:10, color:['#a3e635','#4d7c0f','#e2e8f0'], speed:150, life:0.5, size:4, up:60});
+              api.sound('hit');
+              if (Math.random() < 0.12) pickups.push({x:e.x, y:e.y});
+            }
+            break;
+          }
+        }
+        if (!b.hit && boss && Math.abs(b.x - boss.x) < 36 && Math.abs(b.y - boss.y) < 36) {
+          boss.hp--; b.hit = true;
+          parts.burst(b.x, b.y, {n:2, color:'#a3e635', speed:70, life:0.25, size:3, grav:150});
+          if (boss.hp <= 0) {
+            parts.burst(boss.x, boss.y, {n:40, color:['#a3e635','#fde047','#f97316'], speed:300, life:0.9, size:6, up:120});
+            shake.hit(8, 0.5);
+            return finish(true, `のこり ${n} 人でボスをたおした！`);
+          }
+        }
+      }
+      enemies = enemies.filter(e => e.hp > 0 && e.y < H + 30);
+      // 敵が隊列に到達
+      for (const e of enemies){
+        if (e.y >= SY - 16 && Math.abs(e.x - sx) < 60) {
+          e.hp = 0;
+          const dmg = e.big ? 4 : 2;
+          n -= dmg;
+          floats.add(sx, SY - 40, '-' + dmg, '#f87171', 18);
+          parts.burst(e.x, SY - 10, {n:12, color:'#f87171', speed:160, life:0.5, size:4, up:80});
+          shake.hit(5, 0.25);
+          api.sound('hit');
+          if (n <= 0) return finish(false, 'ぜんめつ… ' + Math.floor(t) + '秒');
+          $('#zb-n').textContent = n;
+        } else if (e.y >= SY + 40) e.hp = 0;   // すり抜けは消滅
+      }
+      enemies = enemies.filter(e => e.hp > 0);
+      // ゲート通過
+      for (const g of gates){
+        if (!g.used && g.y >= SY - 24) { g.used = true; applyGate(sx < W/2 ? g.l : g.r); }
+      }
+      gates = gates.filter(g => g.y < H + 40);
+      // 増援ピックアップ
+      for (const p of pickups){
+        if (!p.got && p.y > SY - 30 && Math.abs(p.x - sx) < 44) {
+          p.got = true; n = Math.min(n + 3, 80);
+          floats.add(p.x, SY - 44, '+3', '#4ade80', 18);
+          api.sound('gate');
+          $('#zb-n').textContent = n;
+        }
+      }
+      pickups = pickups.filter(p => !p.got && p.y < H + 20);
+      // ボス前進
+      if (boss) {
+        boss.y += boss.spd * dt;
+        if (boss.y >= SY - 46) return finish(false, 'ボスにおしつぶされた…');
+      }
+      $('#zb-bar').style.width = clamp(t/cfg.len*100, 0, 100) + '%';
+    }
+    function draw(){
+      ctx.save();
+      shake.apply(ctx);
+      // 道路
+      ctx.fillStyle = '#111827'; ctx.fillRect(-10,-10,W+20,H+20);
+      ctx.fillStyle = '#1f2937'; ctx.fillRect(20, -10, W-40, H+20);
+      const off = (t * ROAD) % 48;
+      ctx.fillStyle = 'rgba(148,163,184,.35)';
+      for (let y=-48; y<H; y+=48) ctx.fillRect(W/2-3, y+off, 6, 26);
+      ctx.fillStyle = 'rgba(250,204,21,.5)';
+      for (let y=-48; y<H; y+=48){ ctx.fillRect(24, y+off, 4, 30); ctx.fillRect(W-28, y+off, 4, 30); }
+      // ゲート
+      gates.forEach(g => {
+        if (g.used) return;
+        const drawPanel = (x1, x2, o) => {
+          const good = o.op === '+' || o.op === '×';
+          ctx.fillStyle = good ? 'rgba(74,222,128,.22)' : 'rgba(248,113,113,.22)';
+          ctx.strokeStyle = good ? '#4ade80' : '#f87171';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.roundRect(x1, g.y-22, x2-x1, 44, 8); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = good ? '#bbf7d0' : '#fecaca';
+          ctx.font = '800 22px system-ui'; ctx.textAlign = 'center';
+          ctx.fillText(o.op + o.v, (x1+x2)/2, g.y + 8);
+        };
+        drawPanel(26, W/2-5, g.l);
+        drawPanel(W/2+5, W-26, g.r);
+      });
+      // ピックアップ
+      ctx.font = '22px serif'; ctx.textAlign = 'center';
+      pickups.forEach(p => ctx.fillText('🎁', p.x, p.y + 8));
+      // 弾
+      ctx.fillStyle = '#fde047';
+      bullets.forEach(b => ctx.fillRect(b.x-1.5, b.y-7, 3, 9));
+      // 敵
+      enemies.forEach(e => {
+        const r = e.big ? 19 : 13;
+        ctx.font = (r*2.2) + 'px serif'; ctx.textAlign = 'center';
+        ctx.fillText('🧟', e.x, e.y + r*0.8);
+        if (e.hp < e.max) {
+          ctx.fillStyle = '#450a0a'; ctx.fillRect(e.x-14, e.y-r-10, 28, 4);
+          ctx.fillStyle = '#f87171'; ctx.fillRect(e.x-14, e.y-r-10, 28*e.hp/e.max, 4);
+        }
+      });
+      // ボス
+      if (boss) {
+        ctx.font = '64px serif'; ctx.textAlign = 'center';
+        ctx.fillText('🧟', boss.x, boss.y + 24);
+        ctx.fillStyle = '#450a0a'; ctx.fillRect(60, 14, W-120, 10);
+        ctx.fillStyle = '#f87171'; ctx.fillRect(60, 14, (W-120)*Math.max(boss.hp,0)/boss.max, 10);
+        ctx.fillStyle = '#fecaca'; ctx.font = '800 12px system-ui';
+        ctx.fillText('BOSS', W/2, 12);
+      }
+      // 隊列
+      const shown = Math.min(n, 30);
+      for (let i=shown-1; i>=0; i--){
+        const p = soldierPos(i);
+        ctx.fillStyle = '#93c5fd';
+        ctx.beginPath(); ctx.arc(p[0], p[1], 6, 0, 7); ctx.fill();
+        ctx.fillStyle = '#1d4ed8';
+        ctx.beginPath(); ctx.arc(p[0], p[1]-2, 5, Math.PI, 0); ctx.fill();
+      }
+      ctx.fillStyle = '#fff'; ctx.font = '800 16px system-ui'; ctx.textAlign = 'center';
+      ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 3;
+      ctx.strokeText('x' + n, sx, SY - 26);
+      ctx.fillText('x' + n, sx, SY - 26);
+      parts.draw(ctx);
+      floats.draw(ctx);
+      ctx.restore();
+    }
+    function loop(tm){
+      raf = requestAnimationFrame(loop);
+      const dt = Math.min((tm - tPrev)/1000 || 0, 1/30);
+      tPrev = tm;
+      if (!over) update(dt);
+      parts.update(dt); floats.update(dt); shake.update(dt);
+      draw();
+    }
+    raf = requestAnimationFrame(tm => { tPrev = tm; raf = requestAnimationFrame(loop); });
+    return {destroy(){ cancelAnimationFrame(raf); ac.abort(); timers.forEach(clearTimeout); dcv(); }};
+  }
+};
+
+/* ============================================================
+   ゲーム6: ふぶきサバイバル(DOM・経営サバイバル)
+   人員配分とたき火で吹雪の日々を生きのびる。
+   ============================================================ */
+const SnowGame = {
+  stages: [
+    {days:3, people:4, wood:16, food:14, req:d => 2},
+    {days:5, people:4, wood:12, food:10, req:d => d >= 3 ? 3 : 2},
+    {days:7, people:5, wood:10, food:9,  req:d => Math.min(2 + Math.floor(d/2), 4)},
+  ],
+  events: [
+    {t:'🚶 旅人がたどり着いた', d:'凍えた旅人が仲間に入りたがっている。',
+     a:{lbl:'むかえ入れる(👥+1 / 🍖-6)', fn:s => { s.people++; s.food = Math.max(0, s.food-6); }},
+     b:{lbl:'ことわる', fn:s => {}}},
+    {t:'🛷 行商人が来た', d:'薪と食料を交換してくれるらしい。',
+     a:{lbl:'🌲8 を 🍖8 に交換', fn:s => { if (s.wood >= 8) { s.wood -= 8; s.food += 8; } }},
+     b:{lbl:'見送る', fn:s => {}}},
+    {t:'🐺 オオカミの遠ぼえ', d:'群れが近づいている。どうする？',
+     a:{lbl:'迎え撃つ(かり係がいれば 🍖+8)', fn:s => { if (s.hunt >= 1) s.food += 8; else s.people--; }},
+     b:{lbl:'身をひそめる(🍖-3)', fn:s => { s.food = Math.max(0, s.food-3); }}},
+    {t:'🏚 古い小屋を発見', d:'雪に埋もれた小屋がある。木材が取れそうだ。',
+     a:{lbl:'解体する(🌲+8 / 🔥Lv-1)', fn:s => { s.wood += 8; s.fire = Math.max(0, s.fire-1); }},
+     b:{lbl:'無視する', fn:s => {}}},
+    {t:'🌌 オーロラの夜', d:'夜空にオーロラがかがやき、みんなの心があたたまった。',
+     a:{lbl:'みんなでながめる(🌲+2 🍖+2)', fn:s => { s.wood += 2; s.food += 2; }},
+     b:{lbl:'すぐ休む', fn:s => {}}},
+  ],
+  create(host, stage, api){
+    const cfg = this.stages[stage];
+    const TICK = 1.5, TPD = 10;                  // 1日=10ティック
+    const s = {people:cfg.people, wood:cfg.wood, food:cfg.food, fire:2,
+               lumber:1, hunt:1, day:1, tick:0, hunger:0, freeze:0};
+    let over = false, paused = false, raf = 0, tPrev = 0, acc = 0, chopCd = 0;
+    let blizzStart = ri(5,7);
+    const eventPool = this.events.slice();
+    const timers = [];
+
+    const wrap = document.createElement('div'); wrap.className = 'sn-wrap';
+    wrap.innerHTML = `
+      <div class="sn-stats">
+        <div class="sn-stat">👥 <span id="sn-p"></span><small>生存者</small></div>
+        <div class="sn-stat">🔥 Lv<span id="sn-f"></span><small>たき火</small></div>
+        <div class="sn-stat">🌲 <span id="sn-w"></span><small>まき</small></div>
+        <div class="sn-stat">🍖 <span id="sn-fd"></span><small>食料</small></div>
+      </div>
+      <div class="sn-day"><span id="sn-d"></span><div class="sn-daybar"><span id="sn-db"></span></div><span id="sn-ph"></span></div>
+      <div class="sn-warn" id="sn-warn"></div>
+      <div class="sn-scene">
+        <canvas class="sn-snow" id="sn-snow"></canvas>
+        <span class="sn-fire" id="sn-fire">🔥</span>
+        <div class="sn-people" id="sn-ppl"></div>
+        <div class="sn-cold" id="sn-cold"></div>
+      </div>
+      <div class="sn-ctrl">
+        <div class="sn-row"><span class="lbl">🌲 きこり係</span>
+          <button class="sn-btn" id="sn-lm">－</button><span class="val" id="sn-lv"></span><button class="sn-btn" id="sn-lp">＋</button></div>
+        <div class="sn-row"><span class="lbl">🍖 かり係</span>
+          <button class="sn-btn" id="sn-hm">－</button><span class="val" id="sn-hv"></span><button class="sn-btn" id="sn-hp">＋</button></div>
+        <div class="sn-row"><span class="lbl">🔥 たき火(＋は🌲4消費)</span>
+          <button class="sn-btn" id="sn-fm">－</button><span class="val" id="sn-fv"></span><button class="sn-btn" id="sn-fp">＋</button></div>
+        <button class="sn-chop" id="sn-chop">🪓 まき割り(+1🌲)</button>
+      </div>`;
+    host.appendChild(wrap);
+    api.hint('たき火を絶やすな！吹雪の前にLvを上げろ');
+
+    // 雪(canvas)
+    const scv = wrap.querySelector('#sn-snow');
+    const sctx = scv.getContext('2d');
+    const flakes = Array.from({length:45}, () => [Math.random(), Math.random(), rnd(0.5,1.5)]);
+    function sizeSnow(){
+      const sc = wrap.querySelector('.sn-scene');
+      scv.width = sc.clientWidth; scv.height = sc.clientHeight;
+    }
+    const ro = new ResizeObserver(sizeSnow); ro.observe(wrap);
+    timers.push(setTimeout(sizeSnow, 50));
+
+    const el = id => wrap.querySelector('#sn-'+id);
+    const isBlizz = () => s.tick >= blizzStart && s.tick < blizzStart + 3;
+    const isWarn  = () => s.tick >= blizzStart - 2 && s.tick < blizzStart;
+    function req(){ return cfg.req(s.day); }
+    function render(){
+      el('p').textContent = s.people;
+      el('f').textContent = s.fire;
+      el('w').textContent = Math.floor(s.wood);
+      el('fd').textContent = Math.floor(s.food);
+      el('d').textContent = `Day ${Math.min(s.day, cfg.days)} / ${cfg.days}`;
+      el('db').style.width = (s.tick / TPD * 100) + '%';
+      el('ph').textContent = s.tick < 7 ? '☀' : '🌙';
+      el('lv').textContent = s.lumber;
+      el('hv').textContent = s.hunt;
+      el('fv').textContent = s.fire;
+      el('fire').style.fontSize = (26 + s.fire * 8) + 'px';
+      el('fire').style.filter = `drop-shadow(0 0 ${8 + s.fire*5}px rgba(251,146,60,.9))`;
+      el('ppl').textContent = '🧍'.repeat(Math.max(s.people, 0));
+      const w = el('warn');
+      if (isBlizz()) {
+        const bad = s.fire < req();
+        w.textContent = bad ? `🌨 吹雪！たき火Lv${req()}必要——こごえている！` : '🌨 吹雪が過ぎるのを待て…';
+        w.className = 'sn-warn active';
+        el('cold').style.opacity = bad ? 0.85 : 0.35;
+      } else if (isWarn()) {
+        w.textContent = `⚠ 吹雪接近！たき火Lv${req()}以上にしろ！`;
+        w.className = 'sn-warn active';
+        el('cold').style.opacity = 0.1;
+      } else {
+        w.textContent = ''; w.className = 'sn-warn';
+        el('cold').style.opacity = 0;
+      }
+    }
+    function toast(msg){
+      const h = document.createElement('div'); h.className = 'hint-bar'; h.textContent = msg;
+      host.appendChild(h);
+      timers.push(setTimeout(() => h.remove(), 3100));
+    }
+    function losePerson(msg){
+      s.people--;
+      s.lumber = Math.min(s.lumber, s.people);
+      s.hunt = Math.min(s.hunt, Math.max(0, s.people - s.lumber));
+      api.sound('freeze');
+      toast(msg);
+      if (s.people <= 0) {
+        over = true;
+        timers.push(setTimeout(() => api.end({win:false, msg:`Day ${s.day} で全員たおれてしまった…`}), 700));
+      }
+    }
+    function doTick(){
+      s.wood += s.lumber * 1.1;
+      s.food += s.hunt * 0.9;
+      s.food -= s.people * 0.35;
+      if (s.food < 0) { s.food = 0; s.hunger++; } else s.hunger = Math.max(0, s.hunger - 1);
+      if (s.hunger >= 3) { s.hunger = 0; losePerson('🍖 食料ぎれ！1人たおれた…'); if (over) return; }
+      s.wood -= s.fire * 0.5;
+      if (s.wood < 0) { s.wood = 0; if (s.fire > 0) { s.fire--; toast('🌲 まきギレ！たき火が弱まった'); api.sound('hit'); } }
+      if (isBlizz() && s.fire < req()) {
+        s.freeze++;
+        if (s.freeze >= 2) { s.freeze = 0; losePerson('❄ 1人こごえてしまった…'); if (over) return; }
+      } else s.freeze = 0;
+      s.tick++;
+      if (s.tick >= TPD) {
+        s.day++; s.tick = 0; blizzStart = ri(5,7);
+        if (s.day > cfg.days) {
+          over = true;
+          timers.push(setTimeout(() => api.end({win:true, msg:`生存者 ${s.people}人 で ${cfg.days}日間を生きのびた！`}), 500));
+          return;
+        }
+        api.sound('event');
+        showEvent();
+      }
+      render();
+    }
+    function showEvent(){
+      if (!eventPool.length) return;
+      paused = true;
+      const ev = eventPool.splice(ri(0, eventPool.length-1), 1)[0];
+      const ovl = document.createElement('div'); ovl.className = 'sn-event';
+      ovl.innerHTML = `<div class="box"><div class="t">${ev.t}</div><div class="d">${ev.d}</div></div>`;
+      const box = ovl.querySelector('.box');
+      [['a','main'],['b','']].forEach(([k, cls]) => {
+        const b = document.createElement('button');
+        if (cls) b.className = cls;
+        b.textContent = ev[k].lbl;
+        b.addEventListener('click', () => {
+          api.sound('tap');
+          ev[k].fn(s);
+          s.lumber = Math.min(s.lumber, s.people);
+          s.hunt = Math.min(s.hunt, Math.max(0, s.people - s.lumber));
+          ovl.remove(); paused = false;
+          if (s.people <= 0) { over = true; timers.push(setTimeout(() => api.end({win:false, msg:'全員たおれてしまった…'}), 600)); }
+          render();
+        });
+        box.appendChild(b);
+      });
+      host.appendChild(ovl);
+    }
+    // 操作
+    const bind = (id, fn) => el(id).addEventListener('click', () => { if (over || paused) return; fn(); api.sound('tap'); render(); });
+    bind('lp', () => { if (s.lumber + s.hunt < s.people) s.lumber++; });
+    bind('lm', () => { if (s.lumber > 0) s.lumber--; });
+    bind('hp', () => { if (s.lumber + s.hunt < s.people) s.hunt++; });
+    bind('hm', () => { if (s.hunt > 0) s.hunt--; });
+    bind('fp', () => { if (s.fire < 5 && s.wood >= 4) { s.wood -= 4; s.fire++; } });
+    bind('fm', () => { if (s.fire > 0) s.fire--; });
+    el('chop').addEventListener('click', () => {
+      if (over || paused || chopCd > 0) return;
+      chopCd = 0.25; s.wood++;
+      api.sound('chop');
+      render();
+    });
+    function drawSnow(dt){
+      if (!scv.width) return;
+      sctx.clearRect(0, 0, scv.width, scv.height);
+      const wind = isBlizz() ? 90 : 12;
+      const spd = isBlizz() ? 150 : 45;
+      sctx.fillStyle = 'rgba(226,232,240,.85)';
+      flakes.forEach(f => {
+        f[1] += spd * f[2] * dt / scv.height;
+        f[0] += wind * f[2] * dt / scv.width;
+        if (f[1] > 1) { f[1] = 0; f[0] = Math.random(); }
+        if (f[0] > 1) f[0] = 0;
+        sctx.beginPath();
+        sctx.arc(f[0]*scv.width, f[1]*scv.height, f[2]*1.6, 0, 7);
+        sctx.fill();
+      });
+    }
+    function loop(tm){
+      raf = requestAnimationFrame(loop);
+      const dt = Math.min((tm - tPrev)/1000 || 0, 1/20);
+      tPrev = tm;
+      chopCd = Math.max(0, chopCd - dt);
+      drawSnow(dt);
+      if (over || paused) return;
+      acc += dt;
+      while (acc >= TICK && !over && !paused) { acc -= TICK; doTick(); }
+    }
+    render();
+    raf = requestAnimationFrame(tm => { tPrev = tm; raf = requestAnimationFrame(loop); });
+    return {destroy(){ over = true; cancelAnimationFrame(raf); ro.disconnect(); timers.forEach(clearTimeout); }};
+  }
+};
+
+/* ============================================================
+   ゲーム7: パワーヒーロー(Canvas・ゲート成長バトル)
+   左右タップでレーンを選び、パワーを育ててボスを倒す。
+   ============================================================ */
+const HeroGame = {
+  stages: [ {rows:13, speed:95}, {rows:17, speed:106}, {rows:21, speed:118} ],
+  gen(cnt){
+    // 「常に良い方を選べば必ず勝てる」ように生成(貪欲シミュレーション)
+    const rows = [];
+    let P = 20;
+    for (let i=0;i<cnt;i++){
+      const r = Math.random();
+      if (r < 0.55) {                                     // ゲート
+        const good = Math.random() < 0.25 ? {op:'×', v:2} : {op:'+', v:ri(8, 18 + i*2)};
+        const bad  = Math.random() < 0.25 ? {op:'÷', v:2} : {op:'-', v:ri(6, 14 + i*2)};
+        const L = Math.random() < 0.5;
+        rows.push({kind:'gate', l:L?good:bad, r:L?bad:good});
+        P = good.op === '×' ? P*2 : P + good.v;
+      } else if (r < 0.85) {                              // 敵
+        const both = Math.random() < 0.4;
+        const pw = Math.max(5, Math.round(P * rnd(0.4, 0.65)));
+        rows.push({kind:'enemy', lane:both ? 'both' : (Math.random()<0.5?0:1), pw});
+        if (both) P += Math.round(pw * 0.25);
+      } else {                                            // ボーナス(両方プラス)
+        const a = {op:'+', v:ri(6,12)}, b = {op:'+', v:ri(6,12)};
+        rows.push({kind:'gate', l:a, r:b});
+        P += Math.max(a.v, b.v);
+      }
+    }
+    rows.push({kind:'boss', pw:Math.round(P * 0.7)});
+    return rows;
+  },
+  create(host, stage, api){
+    const cfg = this.stages[stage];
+    const W = 360, H = 560;
+    const {cv, ctx, toLocal, destroy:dcv} = makeCanvas(host, W, H);
+    const hud = document.createElement('div'); hud.className = 'game-hud';
+    hud.innerHTML = `<span>⚔ パワー <b id="hr-p">20</b></span>
+      <span style="flex:0 0 120px;height:8px;background:#0b1324;border-radius:99px;overflow:hidden">
+        <span id="hr-bar" style="display:block;height:100%;width:0%;background:var(--accent)"></span></span>`;
+    host.appendChild(hud);
+    api.hint('左右をタップしてレーン選択！緑のゲートで強くなれ');
+
+    const HY = 440, LX = [115, 245], SPACING = 240;
+    const rows = this.gen(cfg.rows).map((r, i) => Object.assign(r, {d:220 + i*SPACING, done:false}));
+    const total = rows[rows.length-1].d + 120;
+    const hero = {lane:0, x:LX[0], P:20};
+    let traveled = 0, walkT = 0, over = false, raf = 0, tPrev = 0;
+    let battle = null;                       // {row, t}
+    const parts = makeParticles(), floats = makeFloats(), shake = makeShake();
+    const timers = [];
+
+    const ac = new AbortController();
+    cv.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      if (over) return;
+      hero.lane = toLocal(e).x < W/2 ? 0 : 1;
+      api.sound('tap');
+    }, {signal:ac.signal});
+
+    function finish(win, msg){
+      if (over) return; over = true;
+      api.sound(win ? 'collect' : 'fail');
+      timers.push(setTimeout(() => api.end({win, msg}), win ? 550 : 750));
+    }
+    function setP(v){
+      hero.P = Math.max(1, Math.round(v));
+      $('#hr-p').textContent = hero.P;
+    }
+    function heroSize(){ return clamp(26 + Math.log2(hero.P/10 + 1) * 12, 26, 62); }
+    function trigger(row){
+      row.done = true;
+      if (row.kind === 'gate') {
+        const o = hero.lane === 0 ? row.l : row.r;
+        const good = o.op === '+' || o.op === '×';
+        if (o.op === '+') setP(hero.P + o.v);
+        if (o.op === '-') setP(hero.P - o.v);
+        if (o.op === '×') setP(hero.P * o.v);
+        if (o.op === '÷') setP(hero.P / o.v);
+        floats.add(hero.x, HY - 60, o.op + o.v, good ? '#4ade80' : '#f87171', 22);
+        parts.burst(hero.x, HY - 30, {n:10, color:good ? '#4ade80' : '#f87171', speed:120, life:0.5, size:4, up:100});
+        api.sound(good ? 'gate' : 'hit');
+        if (!good) shake.hit(4, 0.2);
+      } else if (row.kind === 'enemy' && row.lane !== 'both' && row.lane !== hero.lane) {
+        floats.add(LX[row.lane], HY - 40, '💨', '#94a3b8', 18);   // すりぬけ
+      } else {
+        battle = {row, t:0.55};
+        api.sound('slash');
+      }
+    }
+    function resolveBattle(){
+      const row = battle.row;
+      battle = null;
+      const win = hero.P > row.pw;
+      const ex = row.lane === 'both' || row.kind === 'boss' ? W/2 : LX[row.lane];
+      if (win) {
+        parts.burst(ex, HY - 120, {n:22, color:['#fde047','#f87171','#e2e8f0'], speed:230, life:0.7, size:5, up:120});
+        shake.hit(5, 0.25);
+        api.sound('hit');
+        if (row.kind === 'boss') return finish(true, `パワー ${hero.P} でボスをたおした！`);
+        setP(hero.P + Math.round(row.pw * 0.25));
+        floats.add(hero.x, HY - 66, '+' + Math.round(row.pw*0.25), '#fde047', 20);
+        row.dead = true;
+      } else {
+        shake.hit(8, 0.4);
+        parts.burst(hero.x, HY - 20, {n:26, color:['#f87171','#e2e8f0'], speed:250, life:0.8, size:5, up:120});
+        finish(false, `パワー ${hero.P} vs ${row.pw} … まけてしまった`);
+      }
+    }
+    function update(dt){
+      walkT += dt;
+      hero.x += (LX[hero.lane] - hero.x) * Math.min(1, dt*12);
+      if (battle) {
+        battle.t -= dt;
+        if (Math.random() < 0.4) {
+          const ex = battle.row.lane === 'both' || battle.row.kind === 'boss' ? W/2 : LX[battle.row.lane];
+          parts.burst(rnd(hero.x, ex), rnd(HY-110, HY-40), {n:2, color:'#fde047', speed:130, life:0.25, size:4, grav:0});
+        }
+        if (battle.t <= 0) resolveBattle();
+        return;
+      }
+      traveled += cfg.speed * dt;
+      for (const row of rows){
+        if (!row.done && traveled >= row.d) { trigger(row); break; }
+      }
+      $('#hr-bar').style.width = clamp(traveled/total*100, 0, 100) + '%';
+    }
+    function draw(){
+      ctx.save();
+      shake.apply(ctx);
+      // 通路
+      ctx.fillStyle = '#151c2e'; ctx.fillRect(-10,-10,W+20,H+20);
+      ctx.fillStyle = '#0d1424'; ctx.fillRect(0,-10,54,H+20); ctx.fillRect(W-54,-10,54,H+20);
+      const off = traveled % 56;
+      ctx.strokeStyle = 'rgba(148,163,184,.12)'; ctx.lineWidth = 2;
+      for (let y=-56; y<H; y+=56){ ctx.beginPath(); ctx.moveTo(54, y+off); ctx.lineTo(W-54, y+off); ctx.stroke(); }
+      ctx.fillStyle = 'rgba(71,85,105,.25)';
+      for (let y=-28; y<H; y+=56){ ctx.fillRect(40, y+off, 14, 24); ctx.fillRect(W-54, y+off+28, 14, 24); }
+      // 行(ゲート・敵・ボス)
+      rows.forEach(row => {
+        const sy = HY - (row.d - traveled);
+        if (sy < -80 || sy > H + 60 || row.dead) return;
+        if (row.kind === 'gate' && !row.done) {
+          const panel = (x1, x2, o) => {
+            const good = o.op === '+' || o.op === '×';
+            ctx.fillStyle = good ? 'rgba(74,222,128,.20)' : 'rgba(248,113,113,.20)';
+            ctx.strokeStyle = good ? '#4ade80' : '#f87171';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.roundRect(x1, sy-26, x2-x1, 52, 10); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = good ? '#bbf7d0' : '#fecaca';
+            ctx.font = '800 24px system-ui'; ctx.textAlign = 'center';
+            ctx.fillText(o.op + o.v, (x1+x2)/2, sy + 9);
+          };
+          panel(58, W/2-5, row.l);
+          panel(W/2+5, W-58, row.r);
+        }
+        if (row.kind === 'enemy') {
+          const sz = clamp(22 + row.pw/8, 24, 52);
+          const draw1 = x => {
+            ctx.font = sz + 'px serif'; ctx.textAlign = 'center';
+            ctx.fillText('👹', x, sy + sz*0.35);
+            ctx.fillStyle = '#fca5a5'; ctx.font = '800 14px system-ui';
+            ctx.fillText(row.pw, x, sy - sz*0.62);
+          };
+          if (row.lane === 'both') { draw1(LX[0]); draw1(LX[1]); }
+          else draw1(LX[row.lane]);
+        }
+        if (row.kind === 'boss') {
+          ctx.font = '74px serif'; ctx.textAlign = 'center';
+          ctx.fillText('🐲', W/2, sy + 28);
+          ctx.fillStyle = '#fca5a5'; ctx.font = '800 20px system-ui';
+          ctx.fillText('BOSS ' + row.pw, W/2, sy - 52);
+        }
+      });
+      // ヒーロー
+      const hs = heroSize();
+      const bob = battle ? 0 : Math.sin(walkT*10) * 3;
+      ctx.font = hs + 'px serif'; ctx.textAlign = 'center';
+      ctx.fillText('🦸', hero.x, HY + bob);
+      // パワーバッジ
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
+      const bw = 18 + String(hero.P).length * 9;
+      ctx.beginPath(); ctx.roundRect(hero.x - bw/2, HY - hs - 24 + bob, bw, 20, 10); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#7dd3fc'; ctx.font = '800 14px system-ui';
+      ctx.fillText(hero.P, hero.x, HY - hs - 9 + bob);
+      parts.draw(ctx);
+      floats.draw(ctx);
+      ctx.restore();
+    }
+    function loop(tm){
+      raf = requestAnimationFrame(loop);
+      const dt = Math.min((tm - tPrev)/1000 || 0, 1/30);
+      tPrev = tm;
+      if (!over) update(dt);
+      parts.update(dt); floats.update(dt); shake.update(dt);
+      draw();
+    }
+    raf = requestAnimationFrame(tm => { tPrev = tm; raf = requestAnimationFrame(loop); });
+    return {destroy(){ cancelAnimationFrame(raf); ac.abort(); timers.forEach(clearTimeout); dcv(); }};
+  }
+};
+
+/* ============================================================
    登録・起動
    ============================================================ */
-const GAMES = {run:RunGame, water:WaterGame, pin:PinGame, merge:MergeGame};
+const GAMES = {run:RunGame, water:WaterGame, pin:PinGame, merge:MergeGame,
+               zombie:ZombieGame, snow:SnowGame, hero:HeroGame};
 App.openMenu();
 </script>
 </body>
