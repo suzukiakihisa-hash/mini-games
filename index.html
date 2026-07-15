@@ -331,17 +331,30 @@ canvas{display:block; touch-action:none;}
 /* ============================================================
    ゲーム2: 水ソート
    ============================================================ */
-.ws-wrap{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; overflow:hidden;}
-.ws-tubes{display:flex; flex-wrap:wrap; justify-content:center; gap:14px 12px; max-width:400px;}
+.ws-wrap{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; overflow:hidden;
+  background:radial-gradient(130% 80% at 50% 0%, rgba(34,211,238,.12), transparent 62%);}
+.ws-tubes{display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-end; gap:16px 14px; max-width:400px;}
 .tube{
-  width:50px; height:168px; border:3px solid #64748b; border-top:none;
-  border-radius:0 0 22px 22px; background:rgba(148,163,184,.08);
-  display:flex; flex-direction:column-reverse; overflow:hidden;
-  cursor:pointer; transition:transform .15s;
-  padding:2px;
+  position:relative; width:52px; height:172px;
+  border:3px solid rgba(148,197,214,.5); border-top:none;
+  border-radius:5px 5px 24px 24px;
+  background:linear-gradient(100deg, rgba(148,163,184,.10) 0%, rgba(255,255,255,.18) 49%, rgba(148,163,184,.05) 52%, rgba(148,163,184,.12) 100%);
+  box-shadow:inset 0 0 12px rgba(255,255,255,.10), 0 6px 14px rgba(0,0,0,.35);
+  cursor:pointer; transition:transform .16s ease;
 }
-.tube.sel{transform:translateY(-14px); border-color:var(--gold);}
-.tube .seg{width:100%; flex:0 0 25%; border-radius:3px;}
+.tube::before{ content:''; position:absolute; top:8px; left:8px; width:6px; height:76%;
+  background:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,0)); border-radius:99px; pointer-events:none; z-index:3;}
+.tube::after{ content:''; position:absolute; top:-2px; left:-3px; right:-3px; height:5px; border-radius:99px;
+  background:linear-gradient(rgba(255,255,255,.6),rgba(148,197,214,.2)); pointer-events:none; z-index:4;}
+.tube.sel{transform:translateY(-16px); border-color:var(--gold);
+  box-shadow:inset 0 0 12px rgba(255,255,255,.12), 0 0 0 2px rgba(251,191,36,.5), 0 8px 18px rgba(0,0,0,.4);}
+.tube-liquid{position:absolute; inset:3px; display:flex; flex-direction:column-reverse;
+  border-radius:2px 2px 21px 21px; overflow:hidden;}
+.tube .seg{position:relative; width:100%; flex:0 0 25%;}
+.tube .seg::after{content:''; position:absolute; inset:0;
+  background:linear-gradient(92deg, rgba(255,255,255,.26), rgba(255,255,255,0) 42%, rgba(0,0,0,.14));}
+.tube .seg:last-child::before{content:''; position:absolute; top:0; left:0; right:0; height:5px;
+  background:rgba(255,255,255,.4); border-radius:99px; z-index:2;}
 .tube .seg.top-pop{animation:segin .18s ease-out;}
 @keyframes segin{from{transform:translateY(-16px);opacity:.4}to{transform:none;opacity:1}}
 /* ============================================================
@@ -382,18 +395,13 @@ canvas{display:block; touch-action:none;}
   to{transform:translate(var(--dx),105vh) rotate(var(--rot))}
 }
 /* ---- 水ソート演出 ---- */
-.tube{position:relative; background:linear-gradient(105deg,rgba(148,163,184,.16) 0%,rgba(148,163,184,.05) 45%,rgba(255,255,255,.10) 50%,rgba(148,163,184,.05) 55%);}
-.tube::after{
-  content:''; position:absolute; top:4px; left:6px; width:5px; height:70%;
-  background:linear-gradient(rgba(255,255,255,.35),rgba(255,255,255,0));
-  border-radius:99px; pointer-events:none;
-}
-.tube.pouring{z-index:6;}
+.tube.pouring{z-index:6; transition:transform .26s ease;}
 .ws-stream{
-  position:absolute; width:7px; border-radius:3px; pointer-events:none; z-index:7;
-  animation:streamin .32s ease-in forwards; transform-origin:top center;
+  position:absolute; width:6px; border-radius:3px; pointer-events:none; z-index:7;
+  box-shadow:0 0 6px rgba(255,255,255,.4); transform-origin:top center;
+  animation:streamin .3s ease-in forwards;
 }
-@keyframes streamin{0%{height:0;opacity:.4}30%{opacity:1}100%{height:var(--h);opacity:.9}}
+@keyframes streamin{0%{height:0;opacity:.3}30%{opacity:1}100%{height:var(--h);opacity:.95}}
 .ws-done{position:absolute; font-size:18px; pointer-events:none; z-index:8; animation:floatup .9s ease-out forwards;}
 /* ---- ふぶきサバイバル: 建設パネル ---- */
 .sn-build{
@@ -646,10 +654,15 @@ function makeParticles(){
       }
     },
     draw(ctx){
+      // 【v5.3】四角ドット→丸い火花。消えぎわに縮み、うっすらハロを持たせる
       ps.forEach(p => {
-        ctx.globalAlpha = 1 - p.t/p.life;
+        const k = 1 - p.t/p.life;                 // 1→0
+        const r = p.size * (0.3 + 0.7*k) / 2;
         ctx.fillStyle = p.color;
-        ctx.fillRect(p.x-p.size/2, p.y-p.size/2, p.size, p.size);
+        ctx.globalAlpha = k * 0.22;
+        ctx.beginPath(); ctx.arc(p.x, p.y, r*2.2, 0, 7); ctx.fill();
+        ctx.globalAlpha = k;
+        ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 7); ctx.fill();
       });
       ctx.globalAlpha = 1;
     }
@@ -719,6 +732,14 @@ function shade(hex, f){                        // f>0=明るく / f<0=暗く
 function rgba(hex, a){
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
+/* shade() と同じ明暗だが hex を返す。capsule/orb/shadeFill は hex しか受け取れないため */
+function shadeHex(hex, f){
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n>>16)&255, g = (n>>8)&255, b = n&255;
+  if (f >= 0) { r += (255-r)*f; g += (255-g)*f; b += (255-b)*f; }
+  else        { r *= 1+f; g *= 1+f; b *= 1+f; }
+  return '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
 }
 /* 立体の面用グラデーション(パスを引いてから fillStyle に使う) */
 function shadeFill(ctx, cx, cy, r, base, hi=0.45, lo=-0.45){
@@ -978,10 +999,14 @@ const RunGame = {
     {v:305, goal:1400, gapF:1.00, kinds:['low','wide','tall'], theme:1, pats:['line','arch','high','arch']},
     {v:350, goal:1600, gapF:0.90, kinds:['low','wide','tall','double'], theme:2, pats:['arch','high','line','high']},
   ],
+  // gnd=地面 / hz=障害物 / lane=走路のライン。テーマごとに立体の塗り分けを持たせる
   themes: [
-    {sky:['#1d4ed8','#7dd3fc'], far:'#1e3a8a', near:'#172554', orb:'#fde047', orbY:80, stars:false},
-    {sky:['#4c1d95','#f97316'], far:'#3b0764', near:'#2e1065', orb:'#fb923c', orbY:150, stars:false},
-    {sky:['#020617','#1e3356'], far:'#16213a', near:'#0d1526', orb:'#e2e8f0', orbY:70, stars:true},
+    {sky:['#1d4ed8','#7dd3fc'], far:'#1e3a8a', near:'#172554', orb:'#fde047', orbY:80, stars:false,
+     gnd:'#3f4c63', hz:'#ef4444', lane:'#38bdf8', haze:'#7dd3fc'},
+    {sky:['#4c1d95','#f97316'], far:'#3b0764', near:'#2e1065', orb:'#fb923c', orbY:150, stars:false,
+     gnd:'#43305a', hz:'#f43f5e', lane:'#fbbf24', haze:'#fb923c'},
+    {sky:['#020617','#1e3356'], far:'#16213a', near:'#0d1526', orb:'#e2e8f0', orbY:70, stars:true,
+     gnd:'#26354f', hz:'#f87171', lane:'#67e8f9', haze:'#93c5fd'},
   ],
   create(host, stage, api){
     const cfg = this.stages[stage];
@@ -996,7 +1021,7 @@ const RunGame = {
         <span id="run-bar" style="display:block;height:100%;width:0%;background:var(--accent)"></span></span>`;
     host.appendChild(hud);
     api.hint(stage === 0 ? 'タップでジャンプ！メダル100枚 ぜんぶ集めろ'
-                         : '高いメダルは2段ジャンプ(空中でもう1回タップ)でしか届かない！');
+                         : '紫のメダルは2段ジャンプ(空中でもう1回タップ)でしか届かない！');
 
     const GY = H - 90;
     const G = 1750, JV = -620, JV2 = JV * 0.92;
@@ -1187,8 +1212,7 @@ const RunGame = {
                                             speed:340, life:1.0, size:6, grav:420, up:170});
       confettiBurst();
     }
-    function ridge(arr, base, speed, color){
-      ctx.fillStyle = color;
+    function ridge(arr, base, speed, color, hi){
       ctx.beginPath();
       ctx.moveTo(-10, GY);
       const seg = 90;
@@ -1200,7 +1224,128 @@ const RunGame = {
         const hh = h1 + (h2-h1) * (0.5 - Math.cos(f*Math.PI)/2);
         ctx.lineTo(sx, base - hh);
       }
-      ctx.lineTo(W+10, GY); ctx.closePath(); ctx.fill();
+      ctx.lineTo(W+10, GY); ctx.closePath();
+      // 稜線に光を当てる(上=明・下=暗)。左上光源なので上面が明るい
+      const g = ctx.createLinearGradient(0, base-140, 0, base);
+      g.addColorStop(0, shade(color, hi));
+      g.addColorStop(1, shade(color, -0.25));
+      ctx.fillStyle = g; ctx.fill();
+    }
+    /* メダル。回転する立体のコイン。2段ジャンプでしか届かないものは
+       色と光輪を変え、「あれは2段だ」と見た瞬間に分かるようにする */
+    function drawCoin(cx, cy, c){
+      const sp   = runT*3.4 + c.wx*0.03;
+      const th_  = Math.abs(Math.cos(sp));                 // 0=真横(薄い) 1=正面(丸い)
+      const rx   = 2 + 9*th_, ry = 11;
+      const base = c.hi ? '#a78bfa' : '#fbbf24';
+      const rim  = c.hi ? '#ede9fe' : '#fff7cc';
+      const bob  = Math.sin(runT*5 + c.wx)*2;
+      const y    = cy + bob;
+      glow(ctx, cx, y, c.hi ? 26 : 20, c.hi ? '#c4b5fd' : '#fde047', c.hi ? 0.42 : 0.3);
+      ctx.save();
+      ctx.translate(cx, y);
+      // コインの厚み(裏面を少し覗かせる)
+      ctx.fillStyle = shade(base, -0.42);
+      ctx.beginPath(); ctx.ellipse(Math.cos(sp) > 0 ? -1.6 : 1.6, 0, rx, ry, 0, 0, 7); ctx.fill();
+      // 表面(左上からの光でグラデ)
+      const g = ctx.createLinearGradient(-rx, -ry, rx, ry);
+      g.addColorStop(0, shade(base, 0.55));
+      g.addColorStop(0.5, base);
+      g.addColorStop(1, shade(base, -0.3));
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, 7); ctx.fill();
+      // 縁のリム
+      ctx.strokeStyle = rgba(rim.slice(0,7), 0.85); ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, 7); ctx.stroke();
+      // 刻印(正面を向いているときだけ)
+      if (th_ > 0.45) {
+        ctx.globalAlpha = (th_ - 0.45) / 0.55;
+        ctx.fillStyle = shade(base, -0.45);
+        ctx.beginPath();
+        for (let i=0;i<5;i++){                              // ★
+          const a1 = -Math.PI/2 + i*Math.PI*2/5, a2 = a1 + Math.PI/5;
+          ctx.lineTo(Math.cos(a1)*4.6*th_, Math.sin(a1)*4.6);
+          ctx.lineTo(Math.cos(a2)*2.0*th_, Math.sin(a2)*2.0);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      spec(ctx, -rx*0.35, -ry*0.4, rx*0.5, ry*0.35, 0.55);
+      ctx.restore();
+    }
+    /* 障害物。ぜんぶベクターの立体(岩・丸太バリケード・トゲ柱)。
+       ハイライトは必ず clip() の内側で描く(外に漏れると輪郭の横に白い靄が出る) */
+    function drawObs(o, ox){
+      const cx = ox + o.w/2, hz = th.hz;
+      castShadow(ctx, cx, GY + 4, o.w*0.75, 5, 0.4);
+      if (o.type === 'tall') {
+        // トゲ柱: スパイク3本 → 台座で根元を隠す
+        for (let i=0;i<3;i++){
+          const sx = cx + (i-1)*7.5, hgt = o.h - 8 - Math.abs(i-1)*11;
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(sx-5.5, GY-4); ctx.lineTo(sx, GY-8-hgt); ctx.lineTo(sx+5.5, GY-4);
+          ctx.closePath(); ctx.clip();
+          const g = ctx.createLinearGradient(sx-6, 0, sx+6, 0);
+          g.addColorStop(0, shade(hz, 0.45)); g.addColorStop(0.42, hz); g.addColorStop(1, shade(hz, -0.5));
+          ctx.fillStyle = g; ctx.fillRect(sx-7, GY-12-hgt, 14, hgt+14);
+          spec(ctx, sx-2, GY-6-hgt*0.72, 2.2, hgt*0.28, 0.5);
+          ctx.restore();
+        }
+        const bw = o.w + 6;
+        ctx.save();
+        ctx.beginPath(); ctx.roundRect(cx-bw/2, GY-9, bw, 9, 3); ctx.clip();
+        ctx.fillStyle = shadeFill(ctx, cx, GY-5, bw, shadeHex(hz, -0.35), 0.4, -0.35);
+        ctx.fillRect(cx-bw/2, GY-9, bw, 9);
+        spec(ctx, cx-bw*0.22, GY-7.5, bw*0.24, 1.4, 0.4);
+        ctx.restore();
+      } else if (o.type === 'wide') {
+        // 丸太バリケード: 横木2本 + 支柱2本
+        const py = GY - o.h + 4;
+        capsule(ctx, ox+4, py+6, ox+4, GY-2, 4, shadeHex(hz, -0.4));       // 支柱(左)
+        capsule(ctx, ox+o.w-4, py+6, ox+o.w-4, GY-2, 4, shadeHex(hz, -0.4)); // 支柱(右)
+        for (const [ly, r] of [[py, 7], [GY-9, 6]]) {
+          ctx.save();
+          ctx.beginPath(); ctx.roundRect(ox+2, ly-r, o.w-4, r*2, r); ctx.clip();
+          capsule(ctx, ox+2+r, ly, ox+o.w-2-r, ly, r, hz);
+          spec(ctx, ox+o.w*0.4, ly-r*0.45, o.w*0.24, r*0.28, 0.45);
+          ctx.restore();
+        }
+      } else {
+        // 岩: ギザギザの多角形(形は wx から決まるので同じ岩は常に同じ形)
+        const N = 7, pts = [];
+        for (let i=0;i<=N;i++){
+          const a = Math.PI - (i/N)*Math.PI;                                  // 左→右へ半周
+          const k = (i===0 || i===N) ? 1 : 0.84 + (Math.sin(o.wx*0.37 + i*2.1)+1)*0.14;
+          pts.push([cx + Math.cos(a)*(o.w/2)*k, GY - Math.abs(Math.sin(a))*o.h*k]);
+        }
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(ox, GY);
+        pts.forEach(p => ctx.lineTo(p[0], p[1]));
+        ctx.lineTo(ox+o.w, GY); ctx.closePath();
+        ctx.clip();
+        ctx.fillStyle = shadeFill(ctx, cx - o.w*0.2, GY - o.h*0.75, o.w*1.2, hz, 0.5, -0.5);
+        ctx.fillRect(ox-2, GY-o.h-2, o.w+4, o.h+4);
+        // 右下の陰(接地感)
+        const sh = ctx.createLinearGradient(cx, GY-o.h*0.55, ox+o.w, GY);
+        sh.addColorStop(0, 'rgba(2,6,23,0)'); sh.addColorStop(1, 'rgba(2,6,23,.45)');
+        ctx.fillStyle = sh; ctx.fillRect(ox-2, GY-o.h-2, o.w+4, o.h+4);
+        // 割れ目(2本・岩ごとに向きが違う)
+        ctx.strokeStyle = 'rgba(2,6,23,.3)'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx-o.w*0.1, GY-o.h*0.85); ctx.lineTo(cx+o.w*0.06, GY-o.h*0.4); ctx.lineTo(cx-o.w*0.02, GY);
+        ctx.moveTo(cx+o.w*0.2, GY-o.h*0.55); ctx.lineTo(cx+o.w*0.34, GY-o.h*0.2);
+        ctx.stroke();
+        spec(ctx, cx - o.w*0.22, GY - o.h*0.72, o.w*0.2, o.h*0.14, 0.45);
+        ctx.restore();
+        // 上端のリムライト(左上からの光)
+        ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i=1;i<=Math.ceil(N/2);i++) ctx.lineTo(pts[i][0], pts[i][1]);
+        ctx.stroke();
+      }
     }
     function draw(){
       ctx.save();
@@ -1209,56 +1354,90 @@ const RunGame = {
       const sky = ctx.createLinearGradient(0,0,0,GY);
       sky.addColorStop(0, th.sky[0]); sky.addColorStop(1, th.sky[1]);
       ctx.fillStyle = sky; ctx.fillRect(-10,-10,W+20,GY+10);
-      if (th.stars) { ctx.fillStyle = '#e2e8f0'; stars.forEach(s => ctx.fillRect(s[0], s[1], s[2], s[2])); }
-      // 太陽/月
-      ctx.fillStyle = th.orb; ctx.beginPath(); ctx.arc(W-70, th.orbY, 26, 0, 7); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,.15)'; ctx.beginPath(); ctx.arc(W-70, th.orbY, 36, 0, 7); ctx.fill();
-      // 山(パララックス2層)
-      ridge(farR, GY, 0.15, th.far);
-      ridge(nearR, GY, 0.35, th.near);
-      // 雲
-      ctx.fillStyle = 'rgba(226,232,240,.16)';
+      if (th.stars) {
+        stars.forEach(s => {
+          ctx.globalAlpha = 0.4 + Math.abs(Math.sin(runT*1.2 + s[0])) * 0.6;   // またたき
+          ctx.fillStyle = '#e2e8f0'; ctx.fillRect(s[0], s[1], s[2], s[2]);
+        });
+        ctx.globalAlpha = 1;
+      }
+      // 太陽/月(発光する球体に)
+      glow(ctx, W-70, th.orbY, 68, th.orb, 0.35);
+      orb(ctx, W-70, th.orbY, 26, th.orb, 0.5, -0.25);
+      spec(ctx, W-78, th.orbY-9, 9, 7, 0.55);
+      // 山(パララックス2層・稜線に光)
+      ridge(farR, GY, 0.15, th.far, 0.28);
+      ridge(nearR, GY, 0.35, th.near, 0.18);
+      // 地平線のヘイズ(奥行き)
+      const hz2 = ctx.createLinearGradient(0, GY-58, 0, GY);
+      hz2.addColorStop(0, rgba(th.haze, 0));
+      hz2.addColorStop(1, rgba(th.haze, 0.22));
+      ctx.fillStyle = hz2; ctx.fillRect(-10, GY-58, W+20, 58);
+      // 雲(ふくらみのある3つ重ね)
       for (let i=0;i<4;i++){
         const cx = ((i*150 - dist*0.25) % (W+140) + W+140) % (W+140) - 70;
-        ctx.beginPath(); ctx.ellipse(cx, 66+i*30, 38, 13, 0, 0, 7); ctx.fill();
+        const cy = 66 + i*30, s = 0.8 + (i%2)*0.35;
+        ctx.fillStyle = 'rgba(255,255,255,.13)';
+        ctx.beginPath(); ctx.ellipse(cx, cy, 40*s, 13*s, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.10)';
+        ctx.beginPath(); ctx.ellipse(cx-13*s, cy-5*s, 20*s, 11*s, 0, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(cx+15*s, cy-3*s, 17*s, 9*s, 0, 0, 7); ctx.fill();
       }
-      // 地面
-      ctx.fillStyle = '#1e293b'; ctx.fillRect(-10, GY, W+20, H-GY+10);
-      ctx.fillStyle = '#38bdf8'; ctx.fillRect(-10, GY, W+20, 3);
-      ctx.fillStyle = 'rgba(56,189,248,.25)';
+      // 地面(上面の縁を立体的に。手前ほど暗く落とす)
+      const gg = ctx.createLinearGradient(0, GY, 0, H);
+      gg.addColorStop(0, shade(th.gnd, 0.12));
+      gg.addColorStop(0.25, th.gnd);
+      gg.addColorStop(1, shade(th.gnd, -0.5));
+      ctx.fillStyle = gg; ctx.fillRect(-10, GY, W+20, H-GY+10);
+      ctx.fillStyle = rgba(th.lane, 0.9); ctx.fillRect(-10, GY, W+20, 2);      // 走路のエッジ(発光)
+      ctx.fillStyle = 'rgba(255,255,255,.10)'; ctx.fillRect(-10, GY+2, W+20, 2);
+      ctx.fillStyle = rgba(th.lane, 0.22);                                      // レーンマーク
       for (let i=0;i<8;i++){
         const lx = ((i*70 - dist) % (W+70) + W+70) % (W+70) - 35;
-        ctx.fillRect(lx, GY+18, 32, 4);
+        ctx.beginPath(); ctx.roundRect(lx, GY+20, 34, 4, 2); ctx.fill();
       }
-      // ゴール旗
+      ctx.fillStyle = 'rgba(255,255,255,.06)';                                  // 路面の粒(奥行き)
+      for (let i=0;i<14;i++){
+        const px = ((i*53 - dist*1.15) % (W+60) + W+60) % (W+60) - 30;
+        ctx.fillRect(px, GY + 34 + (i%5)*11, 3, 2);
+      }
+      // ゴールゲート
       const gx = goalPx - dist + player.x;
-      if (gx < W + 30) { ctx.font = '36px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.globalAlpha = 1; ctx.fillText('🚩', gx, GY - 6); }
+      if (gx < W + 60 && gx > -60) {
+        glow(ctx, gx, GY-60, 80, '#fde047', 0.22);
+        castShadow(ctx, gx, GY+4, 26, 5, 0.4);
+        capsule(ctx, gx-22, GY-4, gx-22, GY-96, 3.5, '#94a3b8');               // 支柱
+        capsule(ctx, gx+22, GY-4, gx+22, GY-96, 3.5, '#94a3b8');
+        capsule(ctx, gx-24, GY-98, gx+24, GY-98, 3.5, '#cbd5e1');              // 横木
+        // チェッカーフラッグ(風になびく)
+        for (let r=0;r<3;r++) for (let cq=0;cq<4;cq++){
+          const wv = Math.sin(runT*4 + cq*0.9)*2.2;
+          ctx.fillStyle = (r+cq)%2 ? '#f8fafc' : '#0f172a';
+          ctx.fillRect(gx-20 + cq*10, GY-92 + r*9 + wv, 10, 9);
+        }
+        ctx.fillStyle = '#fde047'; ctx.font = '800 11px system-ui'; ctx.textAlign = 'center';
+        ctx.fillText('GOAL', gx, GY-104);
+      }
       // メダル
-      ctx.font = '20px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.globalAlpha = 1;
       coins.forEach(c => {
         if (c.got) return;
         const cx = sxOf(c.wx);
         if (cx < -30 || cx > W + 30) return;
-        ctx.fillText('🪙', cx, c.y + 7 + Math.sin(runT*5 + c.wx)*2);
+        drawCoin(cx, c.y, c);
       });
       // 障害物
       obstacles.forEach(o => {
         const ox = sxOf(o.wx);
         if (ox > W + 30 || ox + o.w < -30) return;
-        if (o.type === 'tall') { ctx.font = (o.h+6)+'px serif'; ctx.textAlign='center'; ctx.fillStyle = '#fff'; ctx.fillText('🌵', ox+o.w/2, GY-2); }
-        else {
-          ctx.fillStyle = '#ef4444';
-          ctx.beginPath(); ctx.roundRect(ox, GY-o.h, o.w, o.h, 5); ctx.fill();
-          ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(ox, GY-o.h, o.w, 5);
-        }
+        drawObs(o, ox);
       });
-      // プレイヤー(手足が動くベクターランナー・2段ジャンプで回転)
+      // プレイヤー(立体シェーディングのランナー・2段ジャンプで回転)
       if (!player.dead) {
         ctx.globalAlpha = 1;
         // 接地影(高く跳ぶほど薄く小さく)
         const airH = clamp((GY - player.y)/130, 0, 1);
-        ctx.fillStyle = `rgba(0,0,0,${(0.32 - airH*0.2).toFixed(2)})`;
-        ctx.beginPath(); ctx.ellipse(player.x, GY+8, 14 - airH*5, 4, 0, 0, 7); ctx.fill();
+        castShadow(ctx, player.x, GY + 8, 15 - airH*5, 4.5, 0.42 - airH*0.26);
+        if (perfect) glow(ctx, player.x, player.y - 18, 34, '#fde047', 0.3);   // パーフェクト後のオーラ
         ctx.save();
         ctx.translate(player.x, player.y);
         if (player.spin > 0) ctx.rotate((1-player.spin) * Math.PI * 2);
@@ -1266,17 +1445,16 @@ const RunGame = {
         const phase = runT * 15;
         const bob = onGround ? Math.abs(Math.sin(phase)) * 2 : 0;
         ctx.translate(0, -bob);
-        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        // 2関節の手足を描くヘルパ(角度は真下=0・前方向が正)
-        const limb = (x0, y0, a1, l1, a2, l2, color, w) => {
+        // 2関節の手足。capsule() で描くと左上光源のシェーディングが乗って丸みが出る
+        const limb = (x0, y0, a1, l1, a2, l2, color, r) => {
           const x1 = x0 + Math.sin(a1)*l1, y1 = y0 + Math.cos(a1)*l1;
           const x2 = x1 + Math.sin(a2)*l2, y2 = y1 + Math.cos(a2)*l2;
-          ctx.strokeStyle = color; ctx.lineWidth = w;
-          ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+          capsule(ctx, x0, y0, x1, y1, r, color);
+          capsule(ctx, x1, y1, x2, y2, r*0.85, color);
         };
         const hipX = -1, hipY = -16, shX = 2, shY = -30;
-        // 走行フォーム: 手前の腕は手前の脚と逆位相(右脚前=右腕後ろ)。
-        // 膝: 後ろ脚はかかとが上がる(スネは太ももより後ろに折れる)。肘: 常に約90度前向き。
+        // 走行フォーム(v3.8で検証済み・角度計算は変更なし):
+        // 手前の腕は手前の脚と逆位相。膝は後ろ脚のかかとが上がる。肘は常に約90度前向き。
         let l1, l2, a1, a2;
         if (onGround) {
           l1 = Math.sin(phase) * 0.85;   // 手前の太もも
@@ -1286,24 +1464,25 @@ const RunGame = {
         } else {
           l1 = 0.95; l2 = -0.35; a1 = -0.7; a2 = 0.5;   // 空中タック姿勢
         }
-        // 奥側の腕・脚(暗色)
-        limb(shX, shY, a2, 8, a2 + 1.2, 7, '#075985', 4);
-        limb(hipX, hipY, l2, 9, l2*1.3 - 0.7, 8, '#075985', 5);
-        // 胴体(前傾)
-        ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 7;
-        ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(shX, shY); ctx.stroke();
-        // 頭+ヘッドバンド
-        ctx.fillStyle = '#fde68a';
-        ctx.beginPath(); ctx.arc(shX+3, shY-8, 6.5, 0, 7); ctx.fill();
-        ctx.fillStyle = '#ef4444';
-        ctx.fillRect(shX-3, shY-13, 12, 3);
+        // 奥側の腕・脚(暗く沈めて奥行きを出す)
+        limb(shX, shY, a2, 8, a2 + 1.2, 7, '#0c4a6e', 2.1);
+        limb(hipX, hipY, l2, 9, l2*1.3 - 0.7, 8, '#0c4a6e', 2.6);
+        // 胴体(前傾・厚みのあるカプセル)
+        capsule(ctx, hipX, hipY, shX, shY, 5.2, '#0ea5e9');
+        spec(ctx, shX-3, shY+4, 3, 6, 0.35);                    // 胸のハイライト
+        // 頭(球)+ヘッドバンド。肌色はメダルの金色と混ざらない色にする
+        orb(ctx, shX+3, shY-8, 6.8, '#f5c9a4', 0.5, -0.4);
+        ctx.fillStyle = shadeFill(ctx, shX+3, shY-12, 7, '#ef4444', 0.4, -0.35);
+        ctx.beginPath(); ctx.roundRect(shX-4, shY-13.5, 13, 3.4, 1.6); ctx.fill();
+        ctx.fillStyle = 'rgba(2,6,23,.55)';                     // 目
+        ctx.beginPath(); ctx.arc(shX+7, shY-7.5, 1.2, 0, 7); ctx.fill();
         // 手前側の脚・腕(明色)
-        limb(hipX, hipY, l1, 9, l1*1.3 - 0.7, 8, '#38bdf8', 5);
-        limb(shX, shY, a1, 8, a1 + 1.2, 7, '#7dd3fc', 4);
+        limb(hipX, hipY, l1, 9, l1*1.3 - 0.7, 8, '#38bdf8', 2.6);
+        limb(shX, shY, a1, 8, a1 + 1.2, 7, '#7dd3fc', 2.1);
         ctx.restore();
         if (onGround && Math.random() < 0.3)
           parts.burst(player.x-12, GY, {n:1, color:'#475569', speed:40, life:0.3, size:3, grav:60});
-        if (perfect && Math.random() < 0.55)                    // パーフェクト後は金色のオーラ
+        if (perfect && Math.random() < 0.55)
           parts.burst(player.x - 6, player.y - 18, {n:1, color:['#fde047','#fbbf24'], speed:45, life:0.55, size:3, grav:-60});
       }
       parts.draw(ctx);
@@ -1312,9 +1491,13 @@ const RunGame = {
       ctx.save();
       ctx.translate(16, 36);
       ctx.scale(cps, cps);
-      ctx.font = '20px serif'; ctx.textAlign = 'left';
-      ctx.fillText('🪙', 0, 0);
+      // HUDのメダル(絵文字は端末によって別の字形に化けるのでベクターで描く)
+      glow(ctx, 8, -6, 14, '#fde047', 0.35);
+      orb(ctx, 8, -6, 9, '#fbbf24', 0.5, -0.4);
+      ctx.strokeStyle = 'rgba(255,247,204,.9)'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(8, -6, 6.6, 0, 7); ctx.stroke();
       const lbl = coinCnt + ' / ' + COIN_TOTAL;
+      ctx.textAlign = 'left';
       ctx.font = '800 17px system-ui';
       ctx.fillStyle = 'rgba(0,0,0,.65)';
       ctx.fillText(lbl, 27, 1);
@@ -1442,12 +1625,14 @@ const WaterGame = {
       tubes.forEach((tu, i) => {
         const el = document.createElement('div');
         el.className = 'tube' + (i===sel ? ' sel' : '');
+        const liq = document.createElement('div'); liq.className = 'tube-liquid';
         tu.forEach((c, k) => {
           const s = document.createElement('div');
           s.className = 'seg' + (i===popIdx && k===tu.length-1 ? ' top-pop' : '');
           s.style.background = PAL[c];
-          el.appendChild(s);
+          liq.appendChild(s);
         });
+        el.appendChild(liq);
         el.addEventListener('click', () => tap(i));
         area.appendChild(el);
       });
@@ -1473,21 +1658,29 @@ const WaterGame = {
       }
     }
     // 傾けて注ぐアニメーション → データ反映
+    //  ・グラスを「注ぎ口(リップ)」を軸に自然な角度で傾け、リップを注ぎ先の口の真上へ運ぶ
+    //  ・液体はグラスの中に収めたまま一緒に傾ける(切り離して浮かないように)
+    //  ・流れはリップ(=注ぎ先の口の真上)から注ぎ先へ落とす
     function pourAnim(si, di){
       busy = true;
       const srcEl = area.children[si], dstEl = area.children[di];
       const c = tubes[si][tubes[si].length-1];
+      srcEl.classList.remove('sel');                      // sel の translate と衝突させない
       const sR = srcEl.getBoundingClientRect(), dR = dstEl.getBoundingClientRect(), wR = wrap.getBoundingClientRect();
-      const leftSide = sR.left <= dR.left;
+      const toRight = sR.left <= dR.left;                 // 注ぐ向き
+      const theta = toRight ? 36 : -36;                   // 自然な注ぎ角(液体はグラス内に収める)
+      const originX = toRight ? '100%' : '0%';            // リップ = 注ぐ向き側の上端を軸に
+      const lipX = toRight ? sR.right : sR.left, lipY = sR.top;
+      const mouthX = dR.left + dR.width/2, mouthY = dR.top;
+      const tx = mouthX - lipX, ty = mouthY - lipY - 8;   // リップを注ぎ先の口の少し上へ
       srcEl.classList.add('pouring');
-      srcEl.style.transformOrigin = '50% 92%';
-      srcEl.style.transition = 'transform .26s ease';
-      srcEl.style.transform = `translate(${dR.left - sR.left + (leftSide ? -30 : 30)}px,${dR.top - sR.top - 70}px) rotate(${leftSide ? 72 : -72}deg)`;
+      srcEl.style.transformOrigin = originX + ' 0%';
+      srcEl.style.transform = `translate(${tx}px,${ty}px) rotate(${theta}deg)`;
       const stream = document.createElement('div');
       stream.className = 'ws-stream';
-      stream.style.left = (dR.left + dR.width/2 - wR.left - 3.5) + 'px';
-      stream.style.top  = (dR.top - wR.top - 26) + 'px';
-      stream.style.setProperty('--h', '44px');
+      stream.style.left = (mouthX - wR.left - 3) + 'px';
+      stream.style.top  = (mouthY - wR.top - 12) + 'px';
+      stream.style.setProperty('--h', '46px');
       stream.style.background = PAL[c];
       timers.push(setTimeout(() => { if (!over) wrap.appendChild(stream); api.sound('pour'); }, 130));
       timers.push(setTimeout(() => {
@@ -1572,13 +1765,22 @@ const PinGame = {
   create(host, stage, api){
     const S = this.stages[stage];
     const W = this.W, H = this.H;
+    // 連動スイッチピン(シーソー): 常にどちらか片方だけが実体。タップで左右が入れ替わる。
+    //  初期の実体は既存の安定配置(静止中の球)に触れない位置=何もしなければ落ちない。
+    let switches = [
+      [ {a:[112,270,160,270], b:[160,270,208,270], on:'a', flip:0} ],
+      [ {a:[112,230,160,230], b:[160,230,208,230], on:'a', flip:0} ],
+      [ {a:[112,230,160,230], b:[160,230,208,230], on:'a', flip:0} ],
+    ][stage] || [];
+    const swSeg = s => s.on==='a' ? s.a : s.b;   // 実体の線分
+    const swAlt = s => s.on==='a' ? s.b : s.a;   // 次に現れる側(ゴースト)
     const {cv, ctx, toLocal, destroy:dcv} = makeCanvas(host, W, H);
     const hud = document.createElement('div'); hud.className = 'game-hud';
     hud.innerHTML = `<span>お宝 <b id="pin-c">0</b> / ${S.gold.length}</span>`;
     const bRetry = document.createElement('button'); bRetry.textContent = '🔄 リトライ';
     hud.appendChild(bRetry);
     host.appendChild(hud);
-    api.hint(S.hint);
+    api.hint(S.hint + (switches.length ? ' / 水色の⇄をタップで切替' : ''));
 
     const GRAV = 1500, REST = 0.15;
     const balls = [];
@@ -1635,7 +1837,7 @@ const PinGame = {
       timers.push(setTimeout(() => api.end({win:false, msg}), 600));
     }
     function step(dt){
-      const segs = S.walls.concat(pins.filter(p=>!p.pulled).map(p=>p.seg));
+      const segs = S.walls.concat(pins.filter(p=>!p.pulled).map(p=>p.seg)).concat(switches.map(swSeg));
       const sub = 3, h = dt/sub;
       for (let s=0; s<sub; s++){
         for (const b of balls){
@@ -1680,6 +1882,7 @@ const PinGame = {
         if (rest.length && rest.every(b=>b.still > 50)) fail('お宝がツボに届かなかった…');
       }
       pins.forEach(p => { if (p.pulled && p.anim < 1) p.anim = Math.min(1, p.anim + dt*5); });
+      switches.forEach(s => { if (s.flip > 0) s.flip = Math.max(0, s.flip - dt*4); });
     }
     function draw(){
       ctx.clearRect(0,0,W,H);
@@ -1692,37 +1895,90 @@ const PinGame = {
         const off = (ry/28)%2 ? 24 : 0;
         for (let rx=-24+off; rx<W; rx+=48) ctx.fillRect(rx+1, ry+1, 46, 26);
       }
-      // たいまつ(ゆらめき)
-      const fl = 15 + Math.sin(gameT*9)*2;
-      ctx.font = fl + 'px serif'; ctx.textAlign = 'center';
-      ctx.fillText('🔥', 40, 70); ctx.fillText('🔥', 280, 70);
-      ctx.fillStyle = 'rgba(251,146,60,' + (0.10 + Math.sin(gameT*9)*0.03) + ')';
-      ctx.beginPath(); ctx.arc(40, 64, 30, 0, 7); ctx.fill();
-      ctx.beginPath(); ctx.arc(280, 64, 30, 0, 7); ctx.fill();
-      // 排出口(溶岩だまり)
+      // たいまつ(ベクター炎: 台座+3層フレーム+ゆらめきグロー)
+      const drawTorch = (tx, ty) => {
+        const wob = Math.sin(gameT*9 + tx)*1.6, wob2 = Math.cos(gameT*13 + tx)*1.1;
+        glow(ctx, tx, ty-6, 26 + wob, '#fb923c', 0.16 + Math.sin(gameT*9+tx)*0.04);
+        ctx.fillStyle = '#57534e'; ctx.fillRect(tx-2.5, ty, 5, 14);        // 柄
+        ctx.fillStyle = '#78716c'; ctx.fillRect(tx-4, ty-2, 8, 4);         // 口金
+        ctx.fillStyle = '#b45309';                                          // 外炎
+        ctx.beginPath(); ctx.moveTo(tx-6, ty-2);
+        ctx.quadraticCurveTo(tx-7, ty-12, tx+wob, ty-19);
+        ctx.quadraticCurveTo(tx+7, ty-12, tx+6, ty-2); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#f97316';                                          // 中炎
+        ctx.beginPath(); ctx.moveTo(tx-4, ty-2);
+        ctx.quadraticCurveTo(tx-5, ty-9, tx+wob2, ty-14);
+        ctx.quadraticCurveTo(tx+5, ty-9, tx+4, ty-2); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#fde047';                                          // 芯
+        ctx.beginPath(); ctx.ellipse(tx+wob2*0.5, ty-4.5, 2.4, 4, 0, 0, 7); ctx.fill();
+      };
+      drawTorch(40, 66); drawTorch(280, 66);
+      // 排出口(溶岩だまり: 層グラデ+うねる表面+気泡)
       S.drains.forEach(d => {
         const g = ctx.createLinearGradient(0, 448, 0, 480);
-        g.addColorStop(0, '#f97316'); g.addColorStop(1, '#7c2d12');
-        ctx.fillStyle = g; ctx.fillRect(d[0], 448, d[1]-d[0], 32);
-        ctx.font = '15px serif'; ctx.textAlign='center';
-        ctx.fillText('🔥', (d[0]+d[1])/2, 468);
+        g.addColorStop(0, '#fb923c'); g.addColorStop(.45, '#ea580c'); g.addColorStop(1, '#7c2d12');
+        ctx.fillStyle = g; ctx.fillRect(d[0], 450, d[1]-d[0], 30);
+        ctx.fillStyle = '#fde047';                                          // 波打つ表面
+        ctx.beginPath(); ctx.moveTo(d[0], 452);
+        for (let x=d[0]; x<=d[1]; x+=8) ctx.lineTo(x, 450 + Math.sin(gameT*3 + x*0.3)*2);
+        ctx.lineTo(d[1], 456); ctx.lineTo(d[0], 456); ctx.closePath(); ctx.fill();
+        for (let k=0;k<2;k++){                                              // 気泡
+          const bx = d[0] + ((gameT*17 + k*53) % (d[1]-d[0]-8)) + 4;
+          const by = 462 + Math.sin(gameT*2.4 + k*3)*4;
+          ctx.fillStyle = 'rgba(253,224,71,.6)';
+          ctx.beginPath(); ctx.arc(bx, by, 2 + (k?1:0), 0, 7); ctx.fill();
+        }
+        glow(ctx, (d[0]+d[1])/2, 452, 20, '#f97316', 0.14);
       });
-      // ツボ(光る収集ゾーン)
+      // ツボ(ベクターの壺: 光るゾーン+胴グラデ+口縁+持ち手)
       const P = S.pot;
       const pg = ctx.createLinearGradient(0, P.y1-16, 0, P.y2);
       pg.addColorStop(0, 'rgba(251,191,36,0)');
       pg.addColorStop(1, 'rgba(251,191,36,' + (0.20 + Math.sin(gameT*4)*0.07) + ')');
       ctx.fillStyle = pg;
       ctx.fillRect(P.x1, P.y1-16, P.x2-P.x1, P.y2-P.y1+16);
-      ctx.font = '20px serif'; ctx.textAlign='center';
-      ctx.fillText('🏺', (P.x1+P.x2)/2, P.y2-6);
-      ctx.font = '11px serif';
-      ctx.fillText('✨', P.x1+14, P.y1-2 + Math.sin(gameT*3)*3);
-      ctx.fillText('✨', P.x2-14, P.y1-4 + Math.cos(gameT*3.4)*3);
-      // 壁
-      ctx.strokeStyle = '#475569'; ctx.lineWidth = 8; ctx.lineCap = 'round';
-      S.walls.forEach(w => { ctx.beginPath(); ctx.moveTo(w[0],w[1]); ctx.lineTo(w[2],w[3]); ctx.stroke(); });
-      // ピン
+      const pcx = (P.x1+P.x2)/2, pby = P.y2-2;
+      castShadow(ctx, pcx, pby+2, 15, 4, 0.3);
+      const bodyG = ctx.createLinearGradient(pcx-13, 0, pcx+13, 0);          // 胴(左上光源)
+      bodyG.addColorStop(0, '#d97706'); bodyG.addColorStop(.35, '#f59e0b'); bodyG.addColorStop(1, '#92400e');
+      ctx.fillStyle = bodyG;
+      ctx.beginPath();
+      ctx.moveTo(pcx-7, pby-22);
+      ctx.bezierCurveTo(pcx-15, pby-18, pcx-14, pby-4, pcx-8, pby);
+      ctx.lineTo(pcx+8, pby);
+      ctx.bezierCurveTo(pcx+14, pby-4, pcx+15, pby-18, pcx+7, pby-22);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#78350f'; ctx.lineWidth = 1.4; ctx.stroke();
+      ctx.fillStyle = '#b45309';                                             // 口縁
+      ctx.beginPath(); ctx.ellipse(pcx, pby-22, 8.5, 3, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#451a03';
+      ctx.beginPath(); ctx.ellipse(pcx, pby-22, 6, 2, 0, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#d97706'; ctx.lineWidth = 2;                        // 持ち手
+      ctx.beginPath(); ctx.arc(pcx-11, pby-16, 4, Math.PI*0.6, Math.PI*1.6); ctx.stroke();
+      ctx.beginPath(); ctx.arc(pcx+11, pby-16, 4, Math.PI*1.4, Math.PI*0.4); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.35)';                               // 照り
+      ctx.beginPath(); ctx.ellipse(pcx-5, pby-13, 2.2, 5, -0.3, 0, 7); ctx.fill();
+      // ツボ上のきらめき(ベクター4条スター)
+      const star = (sx, sy, sr, a) => {
+        ctx.fillStyle = 'rgba(253,230,138,' + a + ')';
+        ctx.beginPath();
+        for (let k=0;k<8;k++){ const r = k%2 ? sr*0.32 : sr, an = k*Math.PI/4 - Math.PI/2;
+          ctx[k?'lineTo':'moveTo'](sx + Math.cos(an)*r, sy + Math.sin(an)*r); }
+        ctx.closePath(); ctx.fill();
+      };
+      star(P.x1+14, P.y1-4 + Math.sin(gameT*3)*3, 5, 0.55 + Math.sin(gameT*5)*0.25);
+      star(P.x2-14, P.y1-6 + Math.cos(gameT*3.4)*3, 4, 0.55 + Math.cos(gameT*4.4)*0.25);
+      // 壁(石をベベルで立体化: 影→本体→上面ハイライト)
+      ctx.lineCap = 'round';
+      S.walls.forEach(w => {
+        ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = 10;
+        ctx.beginPath(); ctx.moveTo(w[0]+1.5, w[1]+2), ctx.lineTo(w[2]+1.5, w[3]+2); ctx.stroke();
+        ctx.strokeStyle = '#3f4a5c'; ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.moveTo(w[0], w[1]); ctx.lineTo(w[2], w[3]); ctx.stroke();
+        ctx.strokeStyle = 'rgba(148,163,184,.55)'; ctx.lineWidth = 2.4;
+        ctx.beginPath(); ctx.moveTo(w[0]-1.4, w[1]-1.4); ctx.lineTo(w[2]-1.4, w[3]-1.4); ctx.stroke();
+      });
+      // ピン(メタリックな金の閂: 影→グラデ棒→ハイライト→リベット)
       pins.forEach(p => {
         if (p.anim >= 1) return;
         const s = p.seg;
@@ -1730,35 +1986,93 @@ const PinGame = {
         const L = Math.hypot(dx,dy) || 1;
         const off = p.anim * 90;
         const ox = dx/L*off, oy = dy/L*off;
+        const nx = -dy/L, ny = dx/L;                 // 法線(厚み方向)
+        const x0 = s[0]+ox, y0 = s[1]+oy, x1 = s[2]+ox, y1 = s[3]+oy;
         ctx.globalAlpha = 1 - p.anim;
-        ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 9; ctx.lineCap='round';
-        ctx.beginPath(); ctx.moveTo(s[0]+ox, s[1]+oy); ctx.lineTo(s[2]+ox, s[3]+oy); ctx.stroke();
-        ctx.beginPath(); ctx.arc(s[2]+ox, s[3]+oy, 8, 0, 7);
-        ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 4; ctx.stroke();
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 10;
+        ctx.beginPath(); ctx.moveTo(x0+1.5, y0+2); ctx.lineTo(x1+1.5, y1+2); ctx.stroke();
+        const bg = ctx.createLinearGradient(x0+nx*4, y0+ny*4, x0-nx*4, y0-ny*4);
+        bg.addColorStop(0, '#fde68a'); bg.addColorStop(.5, '#f59e0b'); bg.addColorStop(1, '#b45309');
+        ctx.strokeStyle = bg; ctx.lineWidth = 9;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x0+nx*2.4, y0+ny*2.4); ctx.lineTo(x1+nx*2.4, y1+ny*2.4); ctx.stroke();
+        [[x0,y0],[x1,y1]].forEach(([hx,hy]) => {           // 両端のリベット頭
+          const rg = ctx.createRadialGradient(hx-2, hy-2, 1, hx, hy, 7);
+          rg.addColorStop(0, '#fffbeb'); rg.addColorStop(.6, '#f59e0b'); rg.addColorStop(1, '#92400e');
+          ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(hx, hy, 6.5, 0, 7); ctx.fill();
+        });
         ctx.globalAlpha = 1;
+      });
+      // 連動スイッチピン(シーソー): 実体=シアン→紫グラデ+⇄、ゴースト=点線でリンク先を明示
+      switches.forEach(s => {
+        const seg = swSeg(s), gh = swAlt(s);
+        ctx.setLineDash([5,5]); ctx.strokeStyle = 'rgba(103,232,249,.45)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(gh[0], gh[1]); ctx.lineTo(gh[2], gh[3]); ctx.stroke(); ctx.setLineDash([]);
+        const pop = 9 + s.flip*4;
+        ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 10;
+        ctx.beginPath(); ctx.moveTo(seg[0]+1.5, seg[1]+2); ctx.lineTo(seg[2]+1.5, seg[3]+2); ctx.stroke();
+        const bg = ctx.createLinearGradient(seg[0], seg[1]-5, seg[0], seg[1]+5);
+        bg.addColorStop(0, '#67e8f9'); bg.addColorStop(.5, '#22d3ee'); bg.addColorStop(1, '#7c3aed');
+        ctx.strokeStyle = bg; ctx.lineWidth = pop;
+        ctx.beginPath(); ctx.moveTo(seg[0], seg[1]); ctx.lineTo(seg[2], seg[3]); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(seg[0], seg[1]-2.4); ctx.lineTo(seg[2], seg[3]-2.4); ctx.stroke();
+        const mx = (seg[0]+seg[2])/2, my = (seg[1]+seg[3])/2;
+        // ⇄ をベクター描画(端末フォント非依存)
+        const ay = my - 10;
+        ctx.strokeStyle = '#e0f2fe'; ctx.fillStyle = '#e0f2fe'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(mx-7, ay-2.5); ctx.lineTo(mx+4, ay-2.5); ctx.stroke();   // 上段→右
+        ctx.beginPath(); ctx.moveTo(mx+3, ay-5.5); ctx.lineTo(mx+7.5, ay-2.5); ctx.lineTo(mx+3, ay+0.5); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(mx+7, ay+3.5); ctx.lineTo(mx-4, ay+3.5); ctx.stroke();   // 下段←左
+        ctx.beginPath(); ctx.moveTo(mx-3, ay+0.5); ctx.lineTo(mx-7.5, ay+3.5); ctx.lineTo(mx-3, ay+6.5); ctx.closePath(); ctx.fill();
       });
       // ボール
       balls.forEach(b => {
         if (b.dead) return;
+        // 接地影
+        ctx.fillStyle = 'rgba(0,0,0,.28)';
+        ctx.beginPath(); ctx.ellipse(b.x+2, b.y+b.r-1, b.r*0.9, b.r*0.4, 0, 0, 7); ctx.fill();
         if (b.kind === 'gold') {
-          ctx.fillStyle = '#fcd34d';
+          const gg = ctx.createRadialGradient(b.x-3.5, b.y-3.5, 1, b.x, b.y, b.r);
+          gg.addColorStop(0, '#fffbeb'); gg.addColorStop(.45, '#fcd34d'); gg.addColorStop(1, '#c2740b');
+          ctx.fillStyle = gg;
           ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
-          ctx.strokeStyle = '#b45309'; ctx.lineWidth = 2; ctx.stroke();
-          ctx.fillStyle = 'rgba(255,255,255,.7)';
-          ctx.beginPath(); ctx.arc(b.x-3, b.y-3, 2.6, 0, 7); ctx.fill();
+          ctx.strokeStyle = '#92400e'; ctx.lineWidth = 1.6; ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,.85)';
+          ctx.beginPath(); ctx.arc(b.x-3.2, b.y-3.6, 2.4, 0, 7); ctx.fill();
         } else {
           const pulse = 1 + Math.sin(gameT*7 + b.x)*0.08;
-          ctx.fillStyle = 'rgba(249,115,22,.25)';
-          ctx.beginPath(); ctx.arc(b.x, b.y, b.r*1.7*pulse, 0, 7); ctx.fill();
-          ctx.fillStyle = '#f97316';
+          const halo = ctx.createRadialGradient(b.x, b.y, b.r*0.6, b.x, b.y, b.r*1.9*pulse);
+          halo.addColorStop(0, 'rgba(249,115,22,.35)'); halo.addColorStop(1, 'rgba(249,115,22,0)');
+          ctx.fillStyle = halo;
+          ctx.beginPath(); ctx.arc(b.x, b.y, b.r*1.9*pulse, 0, 7); ctx.fill();
+          const lg = ctx.createRadialGradient(b.x-2, b.y-2, 1, b.x, b.y, b.r);
+          lg.addColorStop(0, '#fde047'); lg.addColorStop(.5, '#f97316'); lg.addColorStop(1, '#9a3412');
+          ctx.fillStyle = lg;
           ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
-          ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 2.5; ctx.stroke();
-          ctx.fillStyle = '#fde047';
-          ctx.beginPath(); ctx.arc(b.x, b.y, b.r*0.35*pulse, 0, 7); ctx.fill();
+          ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 2; ctx.stroke();
+          ctx.fillStyle = 'rgba(255,240,150,' + (0.8 + Math.sin(gameT*7+b.x)*0.2) + ')';
+          ctx.beginPath(); ctx.arc(b.x, b.y, b.r*0.32*pulse, 0, 7); ctx.fill();
         }
       });
       parts.draw(ctx);
-      if (boomAt) { ctx.font = '36px serif'; ctx.textAlign='center'; ctx.fillText('💥', boomAt.x, boomAt.y+10); }
+      if (boomAt) {                                       // 爆発(ベクター12条スターバースト)
+        glow(ctx, boomAt.x, boomAt.y, 34, '#f97316', 0.5);
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        for (let k=0;k<24;k++){ const r = k%2 ? 8 : 20 + (k%4)*3, an = k*Math.PI/12 + gameT*0.5;
+          ctx[k?'lineTo':'moveTo'](boomAt.x + Math.cos(an)*r, boomAt.y + Math.sin(an)*r); }
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#f97316';
+        ctx.beginPath();
+        for (let k=0;k<16;k++){ const r = k%2 ? 5 : 12, an = k*Math.PI/8 - gameT*0.7;
+          ctx[k?'lineTo':'moveTo'](boomAt.x + Math.cos(an)*r, boomAt.y + Math.sin(an)*r); }
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(boomAt.x, boomAt.y, 4.5, 0, 7); ctx.fill();
+      }
       ctx.restore();
     }
     const ac = new AbortController();
@@ -1776,7 +2090,17 @@ const PinGame = {
         const d = Math.hypot(p.x-(s[0]+dx*t), p.y-(s[1]+dy*t));
         if (d < bd) { bd = d; best = pin; }
       });
-      if (best) { best.pulled = true; api.sound('pull'); }
+      // スイッチ(実体の線分)へのタップ判定=切替
+      let bestSw = null;
+      switches.forEach(s => {
+        const seg = swSeg(s);
+        const dx = seg[2]-seg[0], dy = seg[3]-seg[1], len2 = dx*dx+dy*dy||1;
+        let t = clamp(((p.x-seg[0])*dx + (p.y-seg[1])*dy)/len2, 0, 1);
+        const d = Math.hypot(p.x-(seg[0]+dx*t), p.y-(seg[1]+dy*t));
+        if (d < bd) { bd = d; bestSw = s; best = null; }
+      });
+      if (bestSw) { bestSw.on = bestSw.on==='a' ? 'b' : 'a'; bestSw.flip = 1; api.sound('pull'); }
+      else if (best) { best.pulled = true; api.sound('pull'); }
     }, {signal:ac.signal});
     bRetry.addEventListener('click', () => { App.startGame(App.cur.g, App.cur.stage); }, {signal:ac.signal});
 
@@ -2270,16 +2594,38 @@ const ZombieGame = {
         drawPanel(42, W/2-5, g.l);
         drawPanel(W/2+5, W-42, g.r);
       });
-      // ピックアップ
-      ctx.font = '22px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.globalAlpha = 1;
-      pickups.forEach(p => ctx.fillText('🎁', p.x, p.y + 8));
-      // 武器箱(残りの数字を撃って0にすると開く)
+      // ピックアップ(ベクターのギフト箱: 赤箱+金リボン+フタ)
+      ctx.globalAlpha = 1; ctx.textAlign = 'center';
+      pickups.forEach(p => {
+        const bx = p.x, by = p.y, bw = 18, bh = 14;
+        castShadow(ctx, bx, by + bh/2 + 2, bw*0.55, 3, 0.3);
+        const bg = ctx.createLinearGradient(bx-bw/2, 0, bx+bw/2, 0);
+        bg.addColorStop(0, '#f87171'); bg.addColorStop(.4, '#ef4444'); bg.addColorStop(1, '#b91c1c');
+        ctx.fillStyle = bg; ctx.beginPath(); ctx.roundRect(bx-bw/2, by-bh/2+2, bw, bh-2, 2); ctx.fill();
+        ctx.fillStyle = '#dc2626'; ctx.beginPath(); ctx.roundRect(bx-bw/2-1.5, by-bh/2-3, bw+3, 6, 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fillRect(bx-bw/2-1.5, by-bh/2-3, bw+3, 2);
+        ctx.fillStyle = '#fde047';
+        ctx.fillRect(bx-2, by-bh/2-3, 4, bh+5);                          // 縦リボン
+        ctx.beginPath(); ctx.arc(bx-3.5, by-bh/2-5, 3, 0, 7); ctx.arc(bx+3.5, by-bh/2-5, 3, 0, 7); ctx.fill();  // ちょう結び
+        ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.arc(bx, by-bh/2-4.5, 1.8, 0, 7); ctx.fill();
+      });
+      // 武器箱(ベクターの木箱+金属バンド。残りの数字を撃って0にすると開く)
       crates.forEach(c => {
         const p = Math.max(c.hp, 0) / c.max;
         ctx.fillStyle = 'rgba(253,224,71,.22)';
         ctx.beginPath(); ctx.arc(c.x, c.y, 22 + Math.sin(t*6)*3, 0, 7); ctx.fill();
-        ctx.font = '26px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
-        ctx.fillText('📦', c.x, c.y + 9);
+        const cw = 26, ch = 22, cx0 = c.x-cw/2, cy0 = c.y-ch/2;
+        castShadow(ctx, c.x, c.y + ch/2 + 2, cw*0.55, 3.5, 0.35);
+        const wg = ctx.createLinearGradient(cx0, 0, cx0+cw, 0);           // 木目(左上光源)
+        wg.addColorStop(0, '#b45309'); wg.addColorStop(.4, '#92400e'); wg.addColorStop(1, '#713f12');
+        ctx.fillStyle = wg; ctx.beginPath(); ctx.roundRect(cx0, cy0, cw, ch, 3); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1;           // 板の継ぎ目
+        for (let k=1;k<3;k++){ ctx.beginPath(); ctx.moveTo(cx0+2, cy0+ch*k/3); ctx.lineTo(cx0+cw-2, cy0+ch*k/3); ctx.stroke(); }
+        ctx.fillStyle = '#475569';                                        // 金属バンド
+        ctx.fillRect(cx0+3, cy0-1, 4, ch+2); ctx.fillRect(cx0+cw-7, cy0-1, 4, ch+2);
+        ctx.fillStyle = 'rgba(255,255,255,.25)';
+        ctx.fillRect(cx0+3, cy0-1, 1.4, ch+2); ctx.fillRect(cx0+cw-7, cy0-1, 1.4, ch+2);
+        ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(cx0+1, cy0+1, cw-2, 2.5);  // 上面の照り
         ctx.fillStyle = '#422006'; ctx.fillRect(c.x-21, c.y-25, 42, 5);
         ctx.fillStyle = '#fde047'; ctx.fillRect(c.x-21, c.y-25, 42*p, 5);
         ctx.font = '800 16px system-ui';
@@ -2377,19 +2723,23 @@ const SN_BUILD = [
 ];
 
 const SnowGame = {
+  // 【v5.3】勝利条件を「集落を完成させる(5棟すべて)」に統一。
+  // 旧: S1=Lv2 / S2=Lv3 で勝ててしまい、作業台も防壁も見張り塔も建てないうちに終わっていた。
+  // 難度はクマ・吹雪・必要生存日数で付ける。1日=50秒(旧40秒)。
   stages: [
-    {days:2, need:2, bears:1, bearHp:9,  bearSpd:52, blizzLen:7},
-    {days:3, need:3, bears:2, bearHp:12, bearSpd:58, blizzLen:9},
-    {days:4, need:5, bears:3, bearHp:15, bearSpd:64, blizzLen:11},
+    {days:3, need:5, bears:1, bearHp:9,  bearSpd:52, blizzLen:7,  maxBears:4},
+    {days:4, need:5, bears:2, bearHp:12, bearSpd:58, blizzLen:9,  maxBears:6},
+    // S3の初期3頭は開始1分で殺されうるので2頭に。DAY3から毎日増えるので終盤の圧はむしろ上がる
+    {days:5, need:5, bears:2, bearHp:15, bearSpd:64, blizzLen:11, maxBears:8},
   ],
   create(host, stage, api){
     const cfg = this.stages[stage];
     const W = 360, H = 680;                        // 画面(ビューポート・スマホ縦に合わせた比率)
     const WW = 700, WH = 940;                      // ワールド
     const {cv, ctx, toLocal, destroy:dcv} = makeCanvas(host, W, H);
-    api.hint('ドラッグで移動。🌲🪨を集めて、たき火のまわりに集落を建てよう！');
+    api.hint('ドラッグで移動。🌲🪨を集めて、たき火のまわりに5棟すべて建てれば勝ち！');
 
-    const DAYLEN = 40;
+    const DAYLEN = 50;
     const CORE = 152;                              // 集落の半径
     const FIRE = {x: WW/2, y: WH/2};
     const P = {x: FIRE.x, y: FIRE.y + 96, hp:100, warm:100, face:1, ph:0, mv:false};
@@ -2421,21 +2771,23 @@ const SnowGame = {
     /* ---- 資源ノード(集落の外に配置) ---- */
     const trees = [], rocks = [];
     const outsideCamp = (x, y, d) => Math.hypot(x-FIRE.x, y-FIRE.y) > d;
-    for (let i=0; i<17; i++){
-      for (let k=0; k<40; k++){
+    // 【v5.3】1回のプレーが長くなったぶん、資源ノードを増やす(木17→22・岩9→13)。
+    // 増やさないと「木を探して歩き回るだけの時間」が伸びて作業感が出る
+    for (let i=0; i<22; i++){
+      for (let k=0; k<60; k++){
         const x = rnd(38, WW-38), y = rnd(50, WH-42);
         if (!outsideCamp(x, y, CORE + 28)) continue;
-        if (trees.some(o => Math.hypot(o.x-x, o.y-y) < 58)) continue;
+        if (trees.some(o => Math.hypot(o.x-x, o.y-y) < 54)) continue;
         trees.push({x, y, left:4, prog:0, regrow:0, sway:rnd(0,7)});
         break;
       }
     }
-    for (let i=0; i<9; i++){
-      for (let k=0; k<40; k++){
+    for (let i=0; i<13; i++){
+      for (let k=0; k<60; k++){
         const x = rnd(36, WW-36), y = rnd(48, WH-40);
         if (!outsideCamp(x, y, CORE + 22)) continue;
-        if (trees.some(o => Math.hypot(o.x-x, o.y-y) < 48)) continue;
-        if (rocks.some(o => Math.hypot(o.x-x, o.y-y) < 74)) continue;
+        if (trees.some(o => Math.hypot(o.x-x, o.y-y) < 46)) continue;
+        if (rocks.some(o => Math.hypot(o.x-x, o.y-y) < 66)) continue;
         rocks.push({x, y, left:3, prog:0, regrow:0});
         break;
       }
@@ -2467,7 +2819,7 @@ const SnowGame = {
       api.sound('collect');
     }
     for (let i=0;i<cfg.bears;i++) spawnBear();
-    for (let i=0;i<6;i++) spawnRabbit();
+    for (let i=0;i<8;i++) spawnRabbit();
 
     /* ---- 天候・地面の飾り ---- */
     const flakes  = Array.from({length:90}, () => ({x:Math.random()*W, y:Math.random()*H, z:rnd(0.5,1.7)}));
@@ -2573,14 +2925,22 @@ const SnowGame = {
         blizzT = rnd(11, Math.max(14, DAYLEN - cfg.blizzLen - 6));
         floats.add(P.x, P.y-64, '☀ DAY ' + day, '#a5f3fc', 26);
         api.sound('event');
+        // 【v5.3】DAY3以降は毎日クマが増える。集落が建ち終わったあとの後半が
+        // 「ただ日数を待つだけ」にならないよう、後半を防衛フェーズにする。
+        // (これで防壁と見張り塔に意味が出る)。上限つき=死に確定にはしない
+        if (day >= 3 && bears.length < cfg.maxBears) {
+          spawnBear();
+          floats.add(P.x, P.y-88, '🐻‍❄️ シロクマが増えた…', '#fca5a5', 15);
+        }
         if (day > cfg.days) {
-          spawnBear();                              // 猶予日はクマが増える
-          if (level() < cfg.need)
-            floats.add(P.x, P.y-88, `集落Lv ${level()}/${cfg.need} … まだ足りない！`, '#fca5a5', 15);
+          if (bears.length < cfg.maxBears) spawnBear();   // 猶予日はさらに増える
+          const rest = cfg.need - level();
+          if (rest > 0)
+            floats.add(P.x, P.y-110, `集落はあと ${rest} 棟！`, '#fca5a5', 16);
         }
       }
       if (day > cfg.days && level() >= cfg.need)
-        return finish(true, `集落Lv${level()} を築き、${cfg.days}日を生きのびた！(🐻‍❄️×${kills})`);
+        return finish(true, `集落を完成させ、${cfg.days}日を生きのびた！(🐻‍❄️×${kills})`);
 
       /* 移動 */
       P.mv = false;
@@ -2603,7 +2963,7 @@ const SnowGame = {
       for (const tr of trees){
         if (tr.left <= 0) {
           tr.prog = 0; tr.regrow += dt;
-          if (tr.regrow >= 30) {
+          if (tr.regrow >= 26) {                    // v5.3: 長丁場ぶん再生を早める(30→26)
             tr.regrow = 0; tr.left = 4;
             parts.burst(tr.x, tr.y-12, {n:8, color:'#4ade80', speed:80, life:0.6, size:3, up:60});
           }
@@ -2625,7 +2985,7 @@ const SnowGame = {
       for (const rk of rocks){
         if (rk.left <= 0) {
           rk.prog = 0; rk.regrow += dt;
-          if (rk.regrow >= 42) { rk.regrow = 0; rk.left = 3; }
+          if (rk.regrow >= 34) { rk.regrow = 0; rk.left = 3; }   // v5.3: 42→34
           continue;
         }
         if (Math.hypot(rk.x-P.x, rk.y-P.y) < 38) {
@@ -2661,9 +3021,11 @@ const SnowGame = {
       if (P.warm <= 0) P.hp -= 6*dt;
       if (has('hut') && inCamp && fuel > 0 && P.warm > 40) P.hp = Math.min(100, P.hp + 2.6*dt);
 
-      /* 食料(仲間が増えるほど口が増える = 狩りに出る理由になる) */
-      foodT += dt * (1 + mates.length*0.2);
-      if (foodT >= 8) { foodT = 0; if (food > 0) food--; }
+      /* 食料(仲間が増えるほど口が増える = 狩りに出る理由になる)
+         【v5.3】プレー時間が2〜3倍になったので、同じ消費ペースだと狩りだけで
+         時間が溶ける。1食あたりの間隔を 8→11秒、仲間の係数を 0.2→0.15 に緩和 */
+      foodT += dt * (1 + mates.length*0.15);
+      if (foodT >= 11) { foodT = 0; if (food > 0) food--; }
       if (food <= 0) P.hp -= 2*dt;
 
       /* ウサギ(逃げる・触れると捕獲) */
@@ -2681,11 +3043,11 @@ const SnowGame = {
         }
         r.x = clamp(r.x, 16, WW-16); r.y = clamp(r.y, 24, WH-16);
         if (d < 20) {
-          r.dead = true; food += 4;
-          floats.add(r.x, r.y-28, '+4 🍖', '#4ade80', 16);
+          r.dead = true; food += 5;
+          floats.add(r.x, r.y-28, '+5 🍖', '#4ade80', 16);
           parts.burst(r.x, r.y-6, {n:10, color:['#fff','#fecdd3'], speed:130, life:0.4, size:3, up:70});
           api.sound('coin');
-          respawnQ.push([8, 'rabbit']);
+          respawnQ.push([6, 'rabbit']);
         }
       }
 
@@ -3753,14 +4115,31 @@ const DadaGame = {
           ctx.fillStyle = '#f87171'; ctx.fillRect(e.x-13, e.y-e.r-9, 26*e.hp/e.max, 4);
         }
       });
-      // プレイヤー
+      // プレイヤー(ベクター忍者: フード+目元+マフラー。P.faceで左右反転)
       ctx.fillStyle = 'rgba(0,0,0,.35)';
       ctx.beginPath(); ctx.ellipse(P.x, P.y+15, 13, 5, 0, 0, 7); ctx.fill();
       ctx.save();
       ctx.translate(P.x, P.y);
       ctx.scale(P.face, 1);
-      ctx.font = '32px serif'; ctx.textAlign = 'center';
-      ctx.fillText('🥷', 0, 11);
+      const bob = Math.sin(t*10)*1.2;                       // 挙動そのまま・見た目だけ躍動
+      capsule(ctx, -4, 6+bob*0.4, -7, 13, 2.6, '#1e293b');  // 後ろ脚
+      capsule(ctx,  4, 6+bob*0.4,  7, 13, 2.6, '#334155');  // 前脚
+      capsule(ctx, 0, -2+bob, 0, 7+bob*0.5, 7, '#334155');  // 胴(前傾ぎみ)
+      capsule(ctx, -5, 0+bob, -10, 5+bob, 2.4, '#1e293b');  // 後ろ腕
+      capsule(ctx,  5, 0+bob,  10, 4+bob, 2.4, '#475569');  // 前腕
+      orb(ctx, 1, -10+bob, 8, '#334155', 0.5, -0.45);       // フード頭
+      ctx.fillStyle = '#0f172a';                             // 目元の開口
+      ctx.beginPath(); ctx.roundRect(-3, -13+bob, 11, 5.6, 3); ctx.fill();
+      ctx.fillStyle = '#fff';                                // 目(進行方向へ)
+      ctx.beginPath(); ctx.ellipse(2.4, -10.2+bob, 1.7, 2.1, 0, 0, 7);
+      ctx.ellipse(6.4, -10.2+bob, 1.7, 2.1, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath(); ctx.arc(3, -9.9+bob, 0.8, 0, 7); ctx.arc(7, -9.9+bob, 0.8, 0, 7); ctx.fill();
+      ctx.fillStyle = '#f43f5e';                             // マフラー+なびき
+      ctx.beginPath(); ctx.roundRect(-6, -5.5+bob, 12, 4, 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-5, -4+bob);
+      ctx.quadraticCurveTo(-13, -2+bob + Math.sin(t*8)*2, -16, 2+bob + Math.sin(t*8)*3);
+      ctx.quadraticCurveTo(-12, 3+bob, -6, -0.5+bob); ctx.closePath(); ctx.fill();
       ctx.restore();
       // ジョイスティック
       if (joy) {
