@@ -1731,47 +1731,50 @@ const WaterGame = {
    ============================================================ */
 const PinGame = {
   W:320, H:480,
+  // 【v6】物理を固定タイムステップ化(下記loop)し、実機fps非依存の決定論に。
+  //  それを前提に3ステージを「順序+おとり」「カップ+シーソー」「シーソー2連の2ビット分岐」へ全面再設計。
+  //  全ステージ、初期状態は完全静止(何もしなければ絶対に落ちない)をソルバーで検証済み。
   stages: [
-    { // S1: 4本のピン。左右2つの溶岩を両方すててからお宝を通す
-      walls:[[60,40,60,440],[260,40,260,440],[102,440,218,440],[110,395,110,440],[210,395,210,440],[112,312,112,340],[208,312,208,340]],
-      pot:{x1:112,x2:208,y1:408,y2:438},
+    { // S1: ななめ板が全落下をよこどりする。順序+おとり(P3を先にぬくと左下のお宝が救えない)
+      walls:[[60,40,60,440],[102,440,218,440],[260,40,260,440],[140,375,140,440],[210,340,210,440]],
+      pot:{x1:142,x2:206,y1:408,y2:438},
       drains:[[60,102],[218,260]],
-      pins:[[90,90,230,90],[62,180,255,250],[100,340,220,340],[190,290,65,330]],
-      gold:[[140,76],[175,76],[135,326],[180,326]],
-      lava:[[212,220],[233,229],[80,311],[100,306]],
-      hint:'溶岩🔥を全部すててからお宝を通せ'
+      pins:[[118,80,205,80],[62,150,255,220],[64,260,110,260],[62,262,152,306],[142,390,208,390]],
+      gold:[[168,66],[192,66],[78,246]],
+      lava:[[227,197],[245,203]],
+      hint:'落ちる先をよく見て。ぬく順番がいのち'
     },
-    { // S2: 5本のピン・2段トレイリレー
-      walls:[[60,40,60,440],[260,40,260,440],[102,440,218,440],[110,395,110,440],[210,395,210,440],
-             [112,252,112,280],[208,252,208,280],[112,352,112,380],[208,352,208,380]],
-      pot:{x1:112,x2:208,y1:408,y2:438},
-      drains:[[60,102],[218,260]],
-      pins:[[90,70,230,70],[62,140,255,205],[100,280,220,280],[100,380,220,380],[190,300,65,340]],
-      gold:[[140,56],[175,56],[135,266],[180,266]],
-      lava:[[215,178],[235,185],[80,322],[100,316]],
-      hint:'5本のピン！2段リレーでお宝を運べ'
+    { // S2: じょうご→カップ(床は一度きり)→シーソー。ツボは右下へ移動
+      walls:[[60,40,60,440],[260,40,260,440],[60,120,150,190],[260,120,170,190],
+             [130,196,130,228],[190,196,190,228],[192,376,192,440],[192,440,260,440]],
+      pot:{x1:194,x2:258,y1:400,y2:438},
+      drains:[[60,190]],
+      pins:[[64,70,140,70],[180,70,256,70],[126,244,194,244],[192,388,258,388]],
+      sw:[{a:[196,286,116,322], b:[124,286,204,322]}],
+      gold:[[196,56],[220,56],[244,56]],
+      lava:[[80,56],[108,56]],
+      hint:'カップにためて、シーソーでしわけろ'
     },
-    { // S3: 7本のピン。溶岩斜面+ダミー斜面(乗ると排出口行き)の2枚重ね+ツボのフタ
-      walls:[[60,40,60,440],[260,40,260,440],[102,440,218,440],[110,383,110,440],[210,383,210,440],
-             [112,252,112,280],[208,252,208,280],[112,352,112,380],[208,352,208,380]],
-      pot:{x1:112,x2:208,y1:408,y2:438},
-      drains:[[60,102],[218,260]],
-      pins:[[90,70,230,70],[62,100,255,158],[62,140,255,205],[100,280,220,280],[100,380,220,380],[190,300,65,340],[112,390,208,390]],
-      gold:[[140,56],[175,56],[135,266],[180,266]],
-      lava:[[228,131],[246,138],[80,322],[100,316]],
-      hint:'7本のピン！3枚のしかけを全部かわせ'
+    { // S3: シーソー2連の2ビット分岐。4はん(金3+金1/溶岩2+溶岩1)を正しい道へ
+      walls:[[60,40,60,440],[260,40,260,440],[60,120,150,190],[260,120,170,190],
+             [130,196,130,228],[190,196,190,228],[192,380,192,440],[192,440,260,440],
+             [136,354,208,386]],
+      pot:{x1:194,x2:258,y1:400,y2:438},
+      drains:[[60,190]],
+      pins:[[64,70,150,70],[180,70,256,70],[64,130,110,130],[230,130,258,130],[126,244,194,244],[192,388,258,388]],
+      sw:[{a:[196,262,120,304], b:[124,262,196,304]},
+          {a:[130,318,80,348],  b:[80,318,130,348]}],
+      gold:[[196,56],[216,56],[244,116]],
+      lava:[[122,56],[144,56],[84,116]],
+      hint:'シーソー2れん。先に切りかえ、それからぬけ'
     }
   ],
   create(host, stage, api){
     const S = this.stages[stage];
     const W = this.W, H = this.H;
     // 連動スイッチピン(シーソー): 常にどちらか片方だけが実体。タップで左右が入れ替わる。
-    //  初期の実体は既存の安定配置(静止中の球)に触れない位置=何もしなければ落ちない。
-    let switches = [
-      [ {a:[112,270,160,270], b:[160,270,208,270], on:'a', flip:0} ],
-      [ {a:[112,230,160,230], b:[160,230,208,230], on:'a', flip:0} ],
-      [ {a:[112,230,160,230], b:[160,230,208,230], on:'a', flip:0} ],
-    ][stage] || [];
+    //  初期は'a'。初期状態で球に触れない位置に置く=何もしなければ落ちない。
+    let switches = (S.sw || []).map(o => ({a:o.a, b:o.b, on:'a', flip:0}));
     const swSeg = s => s.on==='a' ? s.a : s.b;   // 実体の線分
     const swAlt = s => s.on==='a' ? s.b : s.a;   // 次に現れる側(ゴースト)
     const {cv, ctx, toLocal, destroy:dcv} = makeCanvas(host, W, H);
@@ -1873,16 +1876,14 @@ const PinGame = {
           b.dead = true;
           if (b.kind === 'gold') { fail('お宝が落ちてしまった…'); return; }
         }
-        // 静止カウント
-        b.still = (Math.abs(b.vx) < 10 && Math.abs(b.vy) < 10) ? b.still+1 : 0;
+        // 静止カウント(秒・固定ステップなのでfps非依存)
+        b.still = (Math.abs(b.vx) < 10 && Math.abs(b.vy) < 10) ? b.still + dt : 0;
       }
       // 全ピンを抜いたのに届かない
       if (pins.every(p=>p.pulled)) {
         const rest = balls.filter(b=>!b.dead && b.kind==='gold');
-        if (rest.length && rest.every(b=>b.still > 50)) fail('お宝がツボに届かなかった…');
+        if (rest.length && rest.every(b=>b.still > 0.8)) fail('お宝がツボに届かなかった…');
       }
-      pins.forEach(p => { if (p.pulled && p.anim < 1) p.anim = Math.min(1, p.anim + dt*5); });
-      switches.forEach(s => { if (s.flip > 0) s.flip = Math.max(0, s.flip - dt*4); });
     }
     function draw(){
       ctx.clearRect(0,0,W,H);
@@ -2104,12 +2105,22 @@ const PinGame = {
     }, {signal:ac.signal});
     bRetry.addEventListener('click', () => { App.startGame(App.cur.g, App.cur.stage); }, {signal:ac.signal});
 
+    // 【v6・最重要】物理は固定タイムステップで進める。
+    //  従来は描画フレームのdtをそのまま積分していたため、実機のフレームレート変動で
+    //  球の挙動が変わり「ヘッドレスでは安定・実機では自壊」の乖離が起きていた(v5.4で実証)。
+    //  固定ステップなら60fpsでも30fpsでも軌道は完全に同一=検証済みの盤面は実機でもそのまま成立する。
+    const FIXED = 1/120;
+    let acc = 0;
     function loop(t){
       raf = requestAnimationFrame(loop);
-      const dt = Math.min((t-tPrev)/1000 || 0, 1/30);
+      const dt = Math.min((t-tPrev)/1000 || 0, 0.1);
       tPrev = t;
       gameT += dt;
-      if (!over) step(dt);
+      acc = Math.min(acc + dt, 0.25);          // 長時間の停止復帰でも死のスパイラルにしない
+      while (acc >= FIXED) { if (!over) step(FIXED); acc -= FIXED; }
+      // 見た目だけのアニメは描画dtで進める(物理に影響しない)
+      pins.forEach(p => { if (p.pulled && p.anim < 1) p.anim = Math.min(1, p.anim + dt*5); });
+      switches.forEach(s => { if (s.flip > 0) s.flip = Math.max(0, s.flip - dt*4); });
       // お宝のきらめき
       if (Math.random() < 0.08) {
         const alive = balls.filter(b => !b.dead && b.kind === 'gold');
@@ -2352,7 +2363,46 @@ const ZombieGame = {
     let fireCd = 0, spawnCd = 1.0, gateCd = 2.5;
     let boss = null, over = false, raf = 0, tPrev = 0;
     const parts = makeParticles(), floats = makeFloats(), shake = makeShake();
-    const props = ['🌲','🏚','🚗','🌳','🗑','🌲','⚰','🌳'].map((e, i) => ({e, y:i*76, side:i%2}));
+    // 路肩の小物はベクター描画(絵文字は端末で字形が化けるため廃止)
+    const props = ['pine','house','car','tree','barrel','pine','grave','tree'].map((k, i) => ({k, y:i*76, side:i%2}));
+    function drawProp(k, x, y){
+      if (k === 'pine'){
+        ctx.fillStyle = '#3f3428'; ctx.fillRect(x-1.5, y-4, 3, 5);
+        ctx.fillStyle = '#1d3a2a';
+        for (let s=0; s<3; s++){
+          const w = 11 - s*2.6, ty = y - 4 - s*6;
+          ctx.beginPath(); ctx.moveTo(x-w/2, ty); ctx.lineTo(x, ty-8); ctx.lineTo(x+w/2, ty); ctx.closePath(); ctx.fill();
+        }
+      } else if (k === 'tree'){
+        ctx.fillStyle = '#3f3428'; ctx.fillRect(x-1.5, y-5, 3, 6);
+        ctx.fillStyle = '#274d33'; ctx.beginPath(); ctx.arc(x, y-11, 7, 0, 7); ctx.fill();
+        ctx.fillStyle = '#356b45'; ctx.beginPath(); ctx.arc(x-2, y-13, 4.5, 0, 7); ctx.fill();
+      } else if (k === 'house'){
+        ctx.fillStyle = '#2c2a33'; ctx.fillRect(x-8, y-9, 16, 10);
+        ctx.fillStyle = '#3a3540';                       // 崩れた屋根
+        ctx.beginPath(); ctx.moveTo(x-9, y-9); ctx.lineTo(x-2, y-16); ctx.lineTo(x+2, y-12);
+        ctx.lineTo(x+5, y-15); ctx.lineTo(x+9, y-9); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#0b0d12'; ctx.fillRect(x-4, y-6, 3.5, 4); ctx.fillRect(x+2, y-6, 3, 7);
+      } else if (k === 'car'){
+        ctx.save(); ctx.translate(x, y); ctx.rotate(-0.06);
+        ctx.fillStyle = '#4a3b3b'; ctx.beginPath(); ctx.roundRect(-9, -7, 18, 5, 2); ctx.fill();
+        ctx.fillStyle = '#3a2e2e'; ctx.beginPath(); ctx.roundRect(-5, -10, 9, 4, 2); ctx.fill();
+        ctx.fillStyle = '#141a24'; ctx.fillRect(-3.5, -9, 3, 2.5);
+        ctx.fillStyle = '#1c1c1c';                       // 前輪だけ(後輪は失われた)
+        ctx.beginPath(); ctx.arc(-5, -1.5, 2.4, 0, 7); ctx.fill();
+        ctx.restore();
+      } else if (k === 'barrel'){
+        ctx.fillStyle = '#4c4438'; ctx.beginPath(); ctx.roundRect(x-4, y-10, 8, 10, 2); ctx.fill();
+        ctx.fillStyle = '#5d5344'; ctx.beginPath(); ctx.ellipse(x, y-10, 4, 1.6, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(x-4, y-7.5, 8, 1.2); ctx.fillRect(x-4, y-4, 8, 1.2);
+      } else if (k === 'grave'){
+        ctx.fillStyle = '#565f6e';
+        ctx.beginPath(); ctx.arc(x, y-7, 4.5, Math.PI, 0); ctx.fill();
+        ctx.fillRect(x-4.5, y-7, 9, 7);
+        ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(x-1, y-8.5, 2, 5); ctx.fillRect(x-2.5, y-7, 5, 2);
+        ctx.fillStyle = '#3b4351'; ctx.fillRect(x-6, y-1, 12, 2);
+      }
+    }
 
     const ac = new AbortController();
     let dragging = false;
@@ -2572,11 +2622,10 @@ const ZombieGame = {
       for (let y=-48; y<H; y+=48) ctx.fillRect(W/2-3, y+off, 6, 26);
       ctx.fillStyle = 'rgba(250,204,21,.5)';
       for (let y=-48; y<H; y+=48){ ctx.fillRect(42, y+off, 4, 30); ctx.fillRect(W-46, y+off, 4, 30); }
-      // 路肩の景観(スクロール)
-      ctx.font = '19px serif'; ctx.textAlign = 'center';
+      // 路肩の景観(スクロール・ベクター小物)
       props.forEach(p => {
         const sy = ((p.y + t*ROAD*0.9) % (H+80)) - 40;
-        ctx.fillText(p.e, p.side ? 17 : W-17, sy);
+        drawProp(p.k, p.side ? 17 : W-17, sy);
       });
       // ゲート
       gates.forEach(g => {
@@ -2676,14 +2725,26 @@ const ZombieGame = {
         ctx.fillStyle = '#fff';
         ctx.fillText(Math.max(boss.hp, 0), boss.x, boss.y - 48);
       }
-      // 隊列
+      // 隊列(ベクター兵士: ヘルメット+軍服+ライフル。丸2個の旧描画を全面刷新)
       const shown = Math.min(n, 30);
       for (let i=shown-1; i>=0; i--){
         const p = soldierPos(i);
-        ctx.fillStyle = '#93c5fd';
-        ctx.beginPath(); ctx.arc(p[0], p[1], 6, 0, 7); ctx.fill();
-        ctx.fillStyle = '#1d4ed8';
-        ctx.beginPath(); ctx.arc(p[0], p[1]-2, 5, Math.PI, 0); ctx.fill();
+        const x = p[0], y = p[1];
+        const ph = t*9 + (i%6)*1.1 + Math.floor(i/6)*0.7;   // 行進の位相(列ごとにずらす)
+        const swg = Math.sin(ph)*2.2;
+        castShadow(ctx, x, y+8.5, 5.5, 2, 0.26);
+        capsule(ctx, x-2, y+3, x-2+swg, y+8, 1.5, '#172554');   // 脚(前後スイング)
+        capsule(ctx, x+2, y+3, x+2-swg, y+8, 1.5, '#1e3a8a');
+        capsule(ctx, x, y-1.5, x, y+3.5, 3.2, '#2563eb');       // 胴体(軍服)
+        ctx.fillStyle = '#94a3b8'; ctx.fillRect(x+3, y-10, 1.8, 9.5);      // ライフル銃身(鋼)
+        ctx.fillStyle = '#e2e8f0'; ctx.fillRect(x+3, y-10, 1.8, 1.4);      // 銃口の照り
+        ctx.fillStyle = '#7c5a32'; ctx.fillRect(x+2.5, y-4, 2.8, 3.2);     // 木のグリップ
+        orb(ctx, x, y-6.5, 2.9, '#e8b98b', 0.45, -0.35);        // 顔
+        ctx.fillStyle = '#1d4ed8';                              // ヘルメット(ドーム+ふち)
+        ctx.beginPath(); ctx.arc(x, y-7.2, 3.7, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = '#172554'; ctx.fillRect(x-4.1, y-7.7, 8.2, 1.7);
+        ctx.fillStyle = 'rgba(255,255,255,.35)';                // 左上光源の照り
+        ctx.beginPath(); ctx.ellipse(x-1.4, y-9.1, 1.6, 0.9, -0.5, 0, 7); ctx.fill();
       }
       ctx.fillStyle = '#fff'; ctx.font = '800 16px system-ui'; ctx.textAlign = 'center';
       ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 3;
