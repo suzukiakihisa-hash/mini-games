@@ -2364,7 +2364,11 @@ const ZombieGame = {
     let boss = null, over = false, raf = 0, tPrev = 0;
     const parts = makeParticles(), floats = makeFloats(), shake = makeShake();
     // 路肩の小物はベクター描画(絵文字は端末で字形が化けるため廃止)
-    const props = ['pine','house','car','tree','barrel','pine','grave','tree'].map((k, i) => ({k, y:i*76, side:i%2}));
+    const props = ['pine','house','car','tree','barrel','lamp','grave','fence','pine','bush','car','bush'].map((k, i) => ({k, y:i*52, side:i%2}));
+    // 【v5.7】道路のディテール(ひび・シミ)と撃破の血痕デカール。すべてスクロールに同期
+    const cracks = Array.from({length:9}, () => ({x:rnd(52,W-52), y:rnd(0,H), len:rnd(22,58), a:rnd(-0.6,0.6)}));
+    const stains = Array.from({length:6}, () => ({x:rnd(58,W-58), y:rnd(0,H), r:rnd(9,20), al:rnd(0.08,0.16)}));
+    let decals = [], muzzles = [];
     function drawProp(k, x, y){
       if (k === 'pine'){
         ctx.fillStyle = '#3f3428'; ctx.fillRect(x-1.5, y-4, 3, 5);
@@ -2401,7 +2405,113 @@ const ZombieGame = {
         ctx.fillRect(x-4.5, y-7, 9, 7);
         ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(x-1, y-8.5, 2, 5); ctx.fillRect(x-2.5, y-7, 5, 2);
         ctx.fillStyle = '#3b4351'; ctx.fillRect(x-6, y-1, 12, 2);
+      } else if (k === 'lamp'){                          // 明滅する壊れかけの街灯
+        const arm = x < W/2 ? 8 : -8;
+        ctx.strokeStyle = '#39404f'; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y-26); ctx.lineTo(x+arm, y-24); ctx.stroke();
+        const on = Math.sin(t*13 + y*0.7) > 0.4;
+        ctx.fillStyle = on ? '#ffe9a3' : '#4c473a';
+        ctx.beginPath(); ctx.arc(x+arm*1.1, y-23.2, 2.2, 0, 7); ctx.fill();
+        if (on) glow(ctx, x+arm*1.1, y-22, 24, '#ffd76a', .28);
+      } else if (k === 'fence'){                         // 朽ちた柵
+        ctx.strokeStyle = '#4a4238'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x-10, y-4); ctx.lineTo(x+10, y-7);
+        ctx.moveTo(x-10, y-9); ctx.lineTo(x+10, y-12);
+        ctx.stroke();
+        [x-9, x, x+9].forEach(px => { ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px+1, y-14); ctx.stroke(); });
+      } else if (k === 'bush'){                          // 枯れかけの茂み
+        ctx.fillStyle = '#233b2b';
+        ctx.beginPath(); ctx.arc(x-4, y-4, 5, 0, 7); ctx.arc(x+3, y-6, 6, 0, 7); ctx.arc(x+1, y-2, 4.5, 0, 7); ctx.fill();
+        ctx.fillStyle = '#2f5238';
+        ctx.beginPath(); ctx.arc(x+1, y-8, 3.4, 0, 7); ctx.fill();
       }
+    }
+
+    /* 【v5.7】ゾンビをベクター化(絵文字🧟を廃止)。よろめき歩行・掴みかかる両腕・
+       被弾フラッシュつき。大型は肩装甲。歩行位相 e.ph は個体ごとにずらす */
+    function drawZombie(e){
+      const r = e.big ? 19 : 13;
+      const sc = r / 13;
+      const ph = e.ph + t * (e.big ? 4.6 : 6.4);
+      const lur = Math.sin(ph);
+      ctx.save();
+      ctx.translate(e.x + Math.sin(ph*0.53) * 2.4, e.y);
+      ctx.scale(sc, sc);
+      ctx.rotate(lur * 0.09);
+      castShadow(ctx, 0, 12, 9, 3.2, 0.3);
+      const skin = e.big ? '#8aa55c' : '#9ab86e', skinD = shade(skin, -0.3);
+      capsule(ctx, -3.5, 4, -4.5 + lur*3, 11, 2.2, '#3f3a45');            // 脚(片方は引きずる)
+      capsule(ctx,  3.5, 4,  4.5 - Math.max(lur,0)*1.6, 10.5, 2.2, '#312d38');
+      ctx.beginPath();                                                    // 破れた服の胴体
+      ctx.moveTo(-7,-6); ctx.lineTo(7,-6); ctx.lineTo(6,5); ctx.lineTo(2,3.5);
+      ctx.lineTo(-1,5.5); ctx.lineTo(-6,4); ctx.closePath();
+      ctx.fillStyle = shadeFill(ctx, 0, -1, 8, e.big ? '#4c3a6e' : '#52525b', .3, -.45); ctx.fill();
+      ctx.fillStyle = rgba(skin, 0.9); ctx.fillRect(-2, -2, 3.5, 3);      // 裂け目からのぞく皮膚
+      const swA = Math.sin(ph)*1.5, swB = Math.cos(ph)*1.2;
+      capsule(ctx, -6, -4, -7 + swA, 6 + swB, 2, skinD);                  // 掴みかかる両腕
+      capsule(ctx,  6, -4,  7 - swA, 7 - swB, 2, skin);
+      orb(ctx, -7 + swA, 7.5 + swB, 1.7, skinD, .3, -.3);
+      orb(ctx,  7 - swA, 8.5 - swB, 1.7, skin, .3, -.3);
+      const hy = -9 + lur*0.6;
+      orb(ctx, 0, hy, 5, skin, .4, -.4);                                  // 頭
+      ctx.fillStyle = '#26202e';                                          // 落ちくぼんだ眼窩
+      ctx.beginPath(); ctx.ellipse(-2.1, hy-0.5, 1.5, 1.9, 0.15, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse( 2.1, hy-0.2, 1.5, 1.9, -0.15, 0, 7); ctx.fill();
+      ctx.fillStyle = '#f0f4d8';                                          // 光る瞳孔
+      ctx.fillRect(-2.4, hy-0.7, 1, 1); ctx.fillRect(1.8, hy-0.4, 1, 1);
+      ctx.strokeStyle = 'rgba(96,18,26,.8)'; ctx.lineWidth = 0.9;         // 傷あと
+      ctx.beginPath(); ctx.moveTo(1, hy-4); ctx.lineTo(3.4, hy-1.6); ctx.stroke();
+      ctx.fillStyle = '#3a3242';                                          // ざんばら髪
+      ctx.beginPath(); ctx.arc(0, hy-1.5, 5, Math.PI*1.05, Math.PI*1.95); ctx.fill();
+      if (e.big){                                                         // 大型: 肩装甲
+        ctx.fillStyle = shadeFill(ctx, 0, -6, 9, '#57534e', .35, -.4);
+        ctx.beginPath(); ctx.roundRect(-8.5, -7.5, 6, 4.5, 1.5); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(2.5, -7.5, 6, 4.5, 1.5); ctx.fill();
+      }
+      if (e.flash > 0){                                                   // 被弾フラッシュ
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = Math.min(e.flash*7, 0.8);
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.ellipse(0, -3, 9, 13, 0, 0, 7); ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    /* 【v5.7】ボスもベクター化: 交互に豪腕を振るう巨躯・裂けた皮膚・怒りの目 */
+    function drawBoss(b){
+      const sl = Math.sin(t*4);
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      const breathe = 1 + Math.sin(t*2.4)*0.02;
+      ctx.scale(breathe, breathe);
+      castShadow(ctx, 0, 34, 30, 9, 0.4);
+      const skin = '#7f9b52', skinD = shade(skin, -0.32);
+      capsule(ctx, -12, 16, -14 + sl*4, 32, 6, '#2f2b38');                // 脚
+      capsule(ctx,  12, 16,  14 - sl*4, 32, 6, '#39343f');
+      capsule(ctx, -20, -8, -27, 10 + sl*6, 7, skinD);                    // 交互スラムの豪腕
+      capsule(ctx,  20, -8,  27, 10 - sl*6, 7, skin);
+      orb(ctx, -27, 13 + sl*6, 6.4, skinD, .35, -.35);
+      orb(ctx,  27, 13 - sl*6, 6.4, skin, .35, -.35);
+      ctx.beginPath(); ctx.ellipse(0, 0, 22, 20, 0, 0, 7);                // 胴体
+      ctx.fillStyle = shadeFill(ctx, 0, -4, 22, skin, .35, -.42); ctx.fill();
+      ctx.strokeStyle = 'rgba(240,244,216,.5)'; ctx.lineWidth = 1.6;      // 浮き出たあばら
+      for (let k=0;k<3;k++){ ctx.beginPath(); ctx.arc(-4, -2 + k*5, 10, -0.5, 0.9); ctx.stroke(); }
+      ctx.fillStyle = 'rgba(80,20,28,.55)';                               // 裂傷
+      ctx.beginPath(); ctx.ellipse(6, 3, 6, 8, 0.3, 0, 7); ctx.fill();
+      orb(ctx, 0, -22, 9, skin, .4, -.4);                                 // 頭
+      ctx.fillStyle = '#1c1424';
+      ctx.beginPath(); ctx.ellipse(-3.4, -23, 2.4, 2.9, 0.2, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse( 3.4, -22.6, 2.4, 2.9, -0.2, 0, 7); ctx.fill();
+      ctx.fillStyle = '#ff5a4e';                                          // 赤く光る瞳
+      ctx.fillRect(-4, -23.8, 1.6, 1.6); ctx.fillRect(2.8, -23.4, 1.6, 1.6);
+      ctx.strokeStyle = '#1c1424'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-5.5, -27.5); ctx.lineTo(-1.5, -26);    // 怒り眉
+      ctx.moveTo(5.5, -27.2); ctx.lineTo(1.5, -25.8); ctx.stroke();
+      ctx.fillStyle = '#3a1020';                                          // うなる口
+      ctx.beginPath(); ctx.ellipse(0, -17.5, 4, 2.6 + Math.max(0, sl)*1.4, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#e7ecd9'; ctx.fillRect(-3, -19.2, 1.6, 1.6); ctx.fillRect(1.4, -19.2, 1.6, 1.6);
+      ctx.restore();
     }
 
     const ac = new AbortController();
@@ -2421,7 +2531,7 @@ const ZombieGame = {
       const tank = stage > 0 && Math.random() < 0.25;
       const scale = 1 + (t / cfg.len) * 1.5;             // 時間経過で敵が硬くなる
       const hp = Math.round((tank ? cfg.ehp*2 : cfg.ehp) * scale);
-      enemies.push({x:rnd(50, W-50), y:-30, hp, max:hp, spd:(tank?cfg.espd*0.7:cfg.espd)*rnd(0.9,1.2), big:tank});
+      enemies.push({x:rnd(50, W-50), y:-30, hp, max:hp, spd:(tank?cfg.espd*0.7:cfg.espd)*rnd(0.9,1.2), big:tank, ph:rnd(0,7), flash:0});
       spawnCd = cfg.spawn * rnd(0.7, 1.3);
     }
     function applyGate(o){
@@ -2483,19 +2593,22 @@ const ZombieGame = {
                         color:WP.color, bw:WP.bw, bh:WP.bh, spd:WP.spd});
         }
         if (Math.random() < 0.25) api.sound('shoot');
-        parts.burst(p[0], p[1]-14, {n:1, color:WP.color, speed:30, life:0.08, size:3, grav:0});
+        muzzles.push({x:p[0]+3, y:p[1]-13, t:0.055, c:WP.color});            // マズルフラッシュ
+        if (Math.random() < 0.3)                                             // 薬莢が跳ねる
+          parts.burst(p[0]+5, p[1]-8, {n:1, color:'#eab308', speed:90, life:0.3, size:2, grav:400, up:70});
       }
       bullets.forEach(b => b.y -= b.spd * dt);
       bullets = bullets.filter(b => b.y > -20 && !b.hit);
       // 敵
-      enemies.forEach(e => e.y += e.spd * dt);
+      enemies.forEach(e => { e.y += e.spd * dt; e.flash = Math.max(0, (e.flash||0) - dt); });
       gates.forEach(g => g.y += ROAD * dt);
       pickups.forEach(p => p.y += 78 * dt);
       crates.forEach(c => c.y += 72 * dt);           // 撃ち込む時間を確保するため道路より遅い
       // 弾 vs 敵/ボス
       const hitEnemy = (b, e) => {
         e.hp -= b.dmg;
-        parts.burst(b.x, b.y, {n:2, color:'#a3e635', speed:60, life:0.25, size:3, grav:150});
+        e.flash = 0.1;
+        parts.burst(b.x, b.y, {n:2, color:['#8f2f38','#a3e635'], speed:60, life:0.25, size:3, grav:150});
         if (b.splash) {                                   // ロケット爆風
           parts.burst(b.x, b.y, {n:12, color:['#f97316','#fde047','#e2e8f0'], speed:180, life:0.4, size:5, grav:100});
           shake.hit(2, 0.12);
@@ -2533,11 +2646,17 @@ const ZombieGame = {
       for (const e of enemies){
         if (e.hp <= 0 && !e.deadFx) {
           e.deadFx = true;
-          parts.burst(e.x, e.y, {n:10, color:['#a3e635','#4d7c0f','#e2e8f0'], speed:150, life:0.5, size:4, up:60});
+          parts.burst(e.x, e.y, {n:10, color:['#8f2f38','#4d7c0f','#a3e635'], speed:150, life:0.5, size:4, up:60});
+          decals.push({x:e.x, y:e.y, r:e.big?15:10, al:0.4, rot:rnd(0,7)});   // 道路に血痕が残る
+          if (decals.length > 40) decals.shift();
           if (Math.random() < 0.5) api.sound('hit');
           if (Math.random() < 0.12) pickups.push({x:e.x, y:e.y});
         }
       }
+      decals.forEach(d => { d.y += ROAD*dt; d.al -= dt*0.02; });
+      decals = decals.filter(d => d.y < H + 40 && d.al > 0.03);
+      muzzles.forEach(m => m.t -= dt);
+      muzzles = muzzles.filter(m => m.t > 0);
       enemies = enemies.filter(e => e.hp > 0 && e.y < H + 30);
       // 武器箱: 数字を0まで削れば入手。削りきれずに通り過ぎたら取り逃し
       for (const c of crates){
@@ -2610,14 +2729,39 @@ const ZombieGame = {
     function draw(){
       ctx.save();
       shake.apply(ctx);
-      // 荒野の路肩+道路
-      ctx.fillStyle = '#18251c'; ctx.fillRect(-10,-10,W+20,H+20);
+      // 【v5.7】荒れた夜のハイウェイ: 路肩(グラデ)+アスファルト+ひび+シミ+血痕
+      const sh = ctx.createLinearGradient(0, 0, 0, H);
+      sh.addColorStop(0, '#131f18'); sh.addColorStop(1, '#1b2b20');
+      ctx.fillStyle = sh; ctx.fillRect(-10,-10,W+20,H+20);
       const off = (t * ROAD) % 48;
       ctx.fillStyle = 'rgba(74,222,128,.07)';
       for (let y=-24; y<H; y+=42){ ctx.fillRect(6, y+off, 10, 3); ctx.fillRect(W-16, y+off+20, 10, 3); }
-      ctx.fillStyle = '#1f2937'; ctx.fillRect(34, -10, W-68, H+20);
-      ctx.fillStyle = 'rgba(0,0,0,.25)';
+      const rgD = ctx.createLinearGradient(34, 0, W-34, 0);
+      rgD.addColorStop(0, '#232d3c'); rgD.addColorStop(0.5, '#2a3547'); rgD.addColorStop(1, '#202a38');
+      ctx.fillStyle = rgD; ctx.fillRect(34, -10, W-68, H+20);
+      ctx.fillStyle = 'rgba(0,0,0,.3)';
       ctx.fillRect(34, -10, 6, H+20); ctx.fillRect(W-40, -10, 6, H+20);
+      ctx.strokeStyle = 'rgba(9,13,20,.55)'; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+      cracks.forEach(c => {                                       // ひび割れ
+        const cy = ((c.y + t*ROAD) % (H+80)) - 40;
+        ctx.beginPath(); ctx.moveTo(c.x, cy);
+        ctx.lineTo(c.x + Math.cos(c.a)*c.len*0.5, cy + c.len*0.5);
+        ctx.lineTo(c.x + Math.cos(c.a+0.7)*c.len*0.3, cy + c.len);
+        ctx.stroke();
+      });
+      stains.forEach(sn => {                                      // 油ジミ
+        const sy2 = ((sn.y + t*ROAD) % (H+80)) - 40;
+        ctx.fillStyle = `rgba(8,10,14,${sn.al.toFixed(2)})`;
+        ctx.beginPath(); ctx.ellipse(sn.x, sy2, sn.r, sn.r*0.6, 0.3, 0, 7); ctx.fill();
+      });
+      decals.forEach(d => {                                       // 撃破の血痕(飛沫つき)
+        ctx.fillStyle = `rgba(96,18,26,${d.al.toFixed(2)})`;
+        ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.rot);
+        ctx.beginPath(); ctx.ellipse(0, 0, d.r, d.r*0.65, 0, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(d.r*0.85, -d.r*0.4, d.r*0.3, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(-d.r*0.7, d.r*0.5, d.r*0.24, 0, 7); ctx.fill();
+        ctx.restore();
+      });
       ctx.fillStyle = 'rgba(148,163,184,.35)';
       for (let y=-48; y<H; y+=48) ctx.fillRect(W/2-3, y+off, 6, 26);
       ctx.fillStyle = 'rgba(250,204,21,.5)';
@@ -2685,18 +2829,41 @@ const ZombieGame = {
         ctx.font = '800 9px system-ui';
         ctx.fillText('WEAPON', c.x, c.y + 22);
       });
-      // 弾(武器ごとに色・形が変化)
+      // 弾(発光グロー+グラデ弾体。武器ごとに色・形が変化)
       bullets.forEach(b => {
-        ctx.fillStyle = b.color;
-        ctx.fillRect(b.x - b.bw/2, b.y - b.bh, b.bw, b.bh);
-        if (b.splash) { ctx.fillStyle = '#fde047'; ctx.fillRect(b.x - 1.5, b.y, 3, 5); }
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = rgba(b.color, 0.25);
+        ctx.beginPath(); ctx.ellipse(b.x, b.y - b.bh/2, b.bw*1.9, b.bh*1.2, 0, 0, 7); ctx.fill();
+        ctx.restore();
+        const bg2 = ctx.createLinearGradient(0, b.y - b.bh, 0, b.y);
+        bg2.addColorStop(0, '#ffffff'); bg2.addColorStop(0.45, b.color); bg2.addColorStop(1, rgba(b.color, 0.3));
+        ctx.fillStyle = bg2;
+        ctx.beginPath(); ctx.roundRect(b.x - b.bw/2, b.y - b.bh, b.bw, b.bh, b.bw/2); ctx.fill();
+        if (b.splash) {                                          // ロケットの噴射炎
+          ctx.fillStyle = '#fde047'; ctx.fillRect(b.x - 1.5, b.y, 3, 5);
+          if (Math.random() < 0.5)
+            parts.burst(b.x, b.y + 4, {n:1, color:['#f97316','#94a3b8'], speed:24, life:0.3, size:3, grav:-40});
+        }
       });
-      // 敵(残りHP数字を常時表示)
+      // マズルフラッシュ(発砲の瞬きを加算合成で)
+      if (muzzles.length){
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        muzzles.forEach(m => {
+          const a = m.t / 0.055;
+          ctx.fillStyle = rgba(m.c, 0.55*a);
+          ctx.beginPath(); ctx.arc(m.x, m.y, 5.5, 0, 7); ctx.fill();
+          ctx.fillStyle = `rgba(255,255,255,${(0.8*a).toFixed(2)})`;
+          ctx.beginPath(); ctx.arc(m.x, m.y, 2.4, 0, 7); ctx.fill();
+        });
+        ctx.restore();
+      }
+      // 敵(ベクターゾンビ+残りHP数字を常時表示)
       enemies.forEach(e => {
         const r = e.big ? 19 : 13;
-        ctx.font = (r*2.2) + 'px serif'; ctx.textAlign = 'center';
-        ctx.fillStyle = '#fff'; ctx.globalAlpha = 1;
-        ctx.fillText('🧟', e.x, e.y + r*0.8);
+        drawZombie(e);
+        ctx.textAlign = 'center';
         ctx.fillStyle = '#450a0a'; ctx.fillRect(e.x-14, e.y-r-8, 28, 4);
         ctx.fillStyle = '#f87171'; ctx.fillRect(e.x-14, e.y-r-8, 28*Math.max(e.hp,0)/e.max, 4);
         ctx.font = '800 12px system-ui';
@@ -2705,11 +2872,10 @@ const ZombieGame = {
         ctx.fillStyle = '#fff';
         ctx.fillText(Math.ceil(e.hp), e.x, e.y - r - 12);
       });
-      // ボス(残りHP数字つき。降りてくる間は無敵=シールド表示)
+      // ボス(ベクター巨躯+残りHP数字。降りてくる間は無敵=シールド表示)
       if (boss) {
-        ctx.font = '64px serif'; ctx.textAlign = 'center';
-        ctx.fillStyle = '#fff'; ctx.globalAlpha = 1;
-        ctx.fillText('🧟', boss.x, boss.y + 24);
+        drawBoss(boss);
+        ctx.textAlign = 'center';
         if (boss.entering) {
           ctx.strokeStyle = `rgba(125,211,252,${(0.5 + Math.sin(t*14)*0.3).toFixed(2)})`;
           ctx.lineWidth = 3;
@@ -2870,7 +3036,8 @@ const SnowGame = {
     }
     function spawnRabbit(){
       const [x,y] = edgePos();
-      rabbits.push({x, y, wa:rnd(0,7), hop:rnd(0,7), face:1});
+      // 【v5.7】run/tired = スタミナ。逃げ続けると息切れして減速する(「速すぎて追いつけない」対策)
+      rabbits.push({x, y, wa:rnd(0,7), hop:rnd(0,7), face:1, run:0, tired:0});
     }
     function spawnMate(x, y){
       mates.push({x, y, st:'seek', kind:'tree', tgt:null, prog:0, carry:0, carryKind:'tree',
@@ -3089,21 +3256,29 @@ const SnowGame = {
       if (foodT >= 11) { foodT = 0; if (food > 0) food--; }
       if (food <= 0) P.hp -= 2*dt;
 
-      /* ウサギ(逃げる・触れると捕獲) */
+      /* ウサギ(逃げる・触れると捕獲)
+         【v5.7】バランス調整: 逃げ足を100→78に落とし、さらに約2秒逃げ続けると
+         息切れして 40 まで減速(1.6秒)。短い追いかけっこで必ず捕まえられる */
       for (const r of rabbits){
         const d = Math.hypot(r.x-P.x, r.y-P.y);
-        r.hop += dt * (d < 100 ? 9 : 3.5);
-        if (d < 100) {
+        const fleeing = d < 88;
+        r.hop += dt * (fleeing ? (r.tired > 0 ? 4.5 : 9) : 3.5);
+        if (r.tired > 0) r.tired -= dt;
+        if (fleeing) {
+          r.run += dt;
+          if (r.run > 2.1 && r.tired <= 0) { r.tired = 1.6; r.run = 0; }
+          const spd = r.tired > 0 ? 40 : 78;
           const a = Math.atan2(r.y-P.y, r.x-P.x);
-          r.x += Math.cos(a)*100*dt; r.y += Math.sin(a)*100*dt;
+          r.x += Math.cos(a)*spd*dt; r.y += Math.sin(a)*spd*dt;
           r.face = Math.cos(a) > 0 ? 1 : -1;
         } else {
+          r.run = Math.max(0, r.run - dt*1.5);
           r.wa += rnd(-2,2)*dt;
           r.x += Math.cos(r.wa)*26*dt; r.y += Math.sin(r.wa)*26*dt;
           r.face = Math.cos(r.wa) > 0 ? 1 : -1;
         }
         r.x = clamp(r.x, 16, WW-16); r.y = clamp(r.y, 24, WH-16);
-        if (d < 20) {
+        if (d < 22) {
           r.dead = true; food += 5;
           floats.add(r.x, r.y-28, '+5 🍖', '#4ade80', 16);
           parts.burst(r.x, r.y-6, {n:10, color:['#fff','#fecdd3'], speed:130, life:0.4, size:3, up:70});
@@ -3326,6 +3501,21 @@ const SnowGame = {
       cg.addColorStop(1, 'rgba(214,232,255,0)');
       ctx.fillStyle = cg;
       ctx.beginPath(); ctx.ellipse(FIRE.x, FIRE.y, CORE, CORE*0.92, 0, 0, 7); ctx.fill();
+      /* 【v5.7】通い路: 建設が進むほど、たき火から各建物へ踏み固められた道が伸びる
+         (集落が「発展していく様子」を地面に刻む) */
+      ctx.strokeStyle = 'rgba(84,106,142,.30)'; ctx.lineCap = 'round';
+      slots.forEach(s => {
+        if (s.state === 'empty') return;
+        ctx.lineWidth = s.state === 'done' ? 10 : 5;                 // 建設中はまだ細い獣道
+        ctx.beginPath(); ctx.moveTo(FIRE.x, FIRE.y + 6);
+        ctx.quadraticCurveTo((FIRE.x+s.x)/2 + 6, (FIRE.y+s.y)/2, s.x, s.y + 6);
+        ctx.stroke();
+      });
+      if (has('wall')) {                                             // 南門への大通り
+        ctx.lineWidth = 12;
+        ctx.beginPath(); ctx.moveTo(FIRE.x, FIRE.y + 8);
+        ctx.lineTo(FIRE.x, FIRE.y + CORE*0.92 + 16); ctx.stroke();
+      }
     }
 
     function drawWarmPool(){
@@ -3465,11 +3655,18 @@ const SnowGame = {
     }
 
     function drawRabbit(r){
-      const hop = Math.abs(Math.sin(r.hop)) * 5;
+      const hop = Math.abs(Math.sin(r.hop)) * (r.tired > 0 ? 2.5 : 5);
       castShadow(ctx, r.x, r.y+5, 8, 3, .3);
       ctx.save(); ctx.translate(r.x, r.y - hop); ctx.scale(r.face, 1);
-      capsule(ctx, -1, -9, -3.5, -17, 1.7, '#eef4fb');               // 耳
-      capsule(ctx,  2, -9,  1.5, -18, 1.7, '#e2ecf7');
+      if (r.tired > 0) {                                             // 息切れ: 耳が垂れ、汗が飛ぶ
+        capsule(ctx, -1, -9, -6, -14, 1.7, '#eef4fb');
+        capsule(ctx,  2, -9, -2, -15, 1.7, '#e2ecf7');
+        ctx.fillStyle = 'rgba(125,211,252,.9)';
+        ctx.beginPath(); ctx.arc(8, -13 - Math.sin(t*9)*2, 1.3, 0, 7); ctx.fill();
+      } else {
+        capsule(ctx, -1, -9, -3.5, -17, 1.7, '#eef4fb');             // 耳
+        capsule(ctx,  2, -9,  1.5, -18, 1.7, '#e2ecf7');
+      }
       orb(ctx, -7, -2, 3,   '#ffffff', .3, -.2);                     // しっぽ
       orb(ctx,  0, -3, 7.5, '#f2f7fd', .35, -.35);                   // 体
       orb(ctx,  5, -8, 5,   '#f7fbff', .4, -.3);                     // 頭
@@ -3618,6 +3815,32 @@ const SnowGame = {
       }
     }
 
+    /* 【v5.7】4棟目からは建物間に電飾ロープが張られ、夜の集落が祝祭的に光る
+       (「集落が発展していく様子」の総仕上げ) */
+    function drawLights(){
+      const done = slots.filter(s => s.state === 'done');
+      if (done.length < 4) return;
+      const cols = ['#fca5a5','#fde047','#86efac','#7dd3fc'];
+      ctx.strokeStyle = 'rgba(30,41,59,.85)'; ctx.lineWidth = 1.2;
+      for (let i=0;i<done.length;i++){
+        const a = done[i], b = done[(i+1)%done.length];
+        if (Math.hypot(a.x-b.x, a.y-b.y) > 210) continue;
+        const ax = a.x, ay = a.y-42, bx2 = b.x, by2 = b.y-42;
+        const mx = (ax+bx2)/2, my = Math.max(ay, by2)+18;
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.quadraticCurveTo(mx, my, bx2, by2); ctx.stroke();
+        for (let k=1;k<5;k++){
+          const q = k/5;
+          const ix = (1-q)*(1-q)*ax + 2*(1-q)*q*mx + q*q*bx2;
+          const iy = (1-q)*(1-q)*ay + 2*(1-q)*q*my + q*q*by2 + 2;
+          const col = cols[(i+k)%4];
+          const tw = 0.55 + Math.sin(t*3 + i*2 + k)*0.25;            // またたき
+          glow(ctx, ix, iy, 7, col, .5*tw);
+          ctx.fillStyle = col;
+          ctx.beginPath(); ctx.arc(ix, iy, 1.7, 0, 7); ctx.fill();
+        }
+      }
+    }
+
     function drawBuilding(s, ghost){
       const x = s.x, y = s.y;
       castShadow(ctx, x + 4, y + 4, 30, 10, .4);
@@ -3637,6 +3860,18 @@ const SnowGame = {
           ctx.lineTo(x+22, y-30); ctx.lineTo(x, y-44); ctx.lineTo(x-22, y-30);
           ctx.closePath();
           ctx.fillStyle = 'rgba(238,247,255,.92)'; ctx.fill();
+          ctx.fillStyle = shadeFill(ctx, x-12, y-42, 5, '#8b98ad', .3, -.4);   // 【v5.7】石積みの煙突
+          ctx.fillRect(x-15, y-46, 7, 13);
+          ctx.fillStyle = 'rgba(238,247,255,.85)'; ctx.fillRect(x-16, y-48, 9, 2.6);
+          if (!ghost) {                                              // 暮らしの煙が立ちのぼる
+            ctx.fillStyle = 'rgba(203,213,225,.16)';
+            for (let i=0;i<3;i++){
+              const pr = (t*10 + i*16) % 46;
+              ctx.beginPath();
+              ctx.arc(x-11.5 + Math.sin(t*1.8+i)*3, y-50-pr, 3 + pr*0.09, 0, 7);
+              ctx.fill();
+            }
+          }
           if (!ghost) glow(ctx, x+10, y-19, 22, '#fbbf24', .45);     // 窓の灯り
           ctx.beginPath(); ctx.roundRect(x+4, y-25, 13, 11, 2);
           ctx.fillStyle = '#fcd34d'; ctx.fill();
@@ -3662,6 +3897,19 @@ const SnowGame = {
           crate(x-11, y+2,  24, 20, '#a06a3a');
           crate(x+13, y+2,  22, 16, '#8f5c30');
           crate(x-2,  y-18, 22, 17, '#b0774a');
+          if (!ghost) {                                              // 【v5.7】蓄えが見える倉庫:
+            const logs = Math.min(Math.floor(wood/8), 4);            // 木材が貯まるほど薪の山が育ち
+            for (let i=0;i<logs;i++){
+              const row = Math.floor(i/2), col = i%2;
+              capsule(ctx, x+24, y+6-row*5.5-col*0.8, x+38, y+6-row*5.5-col*0.8, 2.6,
+                      ['#8a5a2b','#7c4a21','#96622f','#6d4320'][i]);
+              ctx.fillStyle = '#d9c39a';
+              ctx.beginPath(); ctx.arc(x+38, y+6-row*5.5-col*0.8, 2.1, 0, 7); ctx.fill();
+            }
+            const st2 = Math.min(Math.floor(stone/6), 3);            // 石も積み上がる
+            for (let i=0;i<st2;i++)
+              orb(ctx, x-28-i*4, y+4-(i%2)*4, 3.6, '#8b98ad', .4, -.45);
+          }
           break;
         }
         case 'work': {
@@ -3726,6 +3974,14 @@ const SnowGame = {
           const pulse = 0.78 + Math.sin(t*3)*0.14;                   // ランタン
           if (!ghost) glow(ctx, x, y-41, 36*pulse, '#fde68a', .5);
           orb(ctx, x, y-41, 4.6, '#fde047', .6, -.2);
+          if (!ghost) {                                              // 【v5.7】はためく旗(集落の誇り)
+            const fw = Math.sin(t*6)*2.6;
+            ctx.strokeStyle = '#5f3717'; ctx.lineWidth = 1.6;
+            ctx.beginPath(); ctx.moveTo(x, y-60); ctx.lineTo(x, y-72); ctx.stroke();
+            ctx.fillStyle = '#e0503c';
+            ctx.beginPath(); ctx.moveTo(x, y-72); ctx.lineTo(x+13, y-69+fw*0.5);
+            ctx.lineTo(x, y-65); ctx.closePath(); ctx.fill();
+          }
           break;
         }
       }
@@ -3760,6 +4016,16 @@ const SnowGame = {
         ctx.translate(s.x, s.y); ctx.scale(1, p); ctx.translate(-s.x, -s.y);
         drawBuilding(s);
         ctx.restore();
+        /* 【v5.7】工事の足場(丸太の櫓)。進捗にあわせて横木がせり上がる */
+        ctx.strokeStyle = 'rgba(160,106,58,.9)'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(s.x-30, s.y+4); ctx.lineTo(s.x-30, s.y-36);
+        ctx.moveTo(s.x+30, s.y+4); ctx.lineTo(s.x+30, s.y-36);
+        ctx.moveTo(s.x-33, s.y-2-34*p); ctx.lineTo(s.x+33, s.y-2-34*p);
+        ctx.moveTo(s.x-33, s.y-2-17*p); ctx.lineTo(s.x+33, s.y-2-17*p);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(238,247,255,.8)';                      // 足場に積もる雪
+        ctx.fillRect(s.x-32, s.y-38, 5, 2); ctx.fillRect(s.x+27, s.y-38, 5, 2);
         ringProg(s.x, s.y - 38, 16, p, '#fde047');
         if (Math.random() < 0.35)
           parts.burst(s.x + rnd(-16,16), s.y + 4, {n:1, color:['#e2e8f0','#fde047'], speed:40, life:0.5, size:3, up:50});
@@ -3909,6 +4175,7 @@ const SnowGame = {
       }
       items.sort((a, b) => a[0] - b[0]);
       items.forEach(it => it[1]());
+      drawLights();
 
       if (lastAtk) {                                                 // 槍の一撃
         ctx.save();
@@ -4231,10 +4498,17 @@ const DadaGame = {
    回転しながら迫るウイルスを、ドラッグ照準のビームで焼く。
    ============================================================ */
 const CellGame = {
+  // 【v5.7】ステージごとに敵の種類・挙動・世界観を一新:
+  //  S1「培養シャーレ」= 変異ウイルス(回転接近・従来型)
+  //  S2「深海」= 連結された大蛇が回転しながら迫る(節を撃ち切ると分断・頭は昇格)+クラゲ
+  //  S3「血流」= 分裂体(倒すと2体に割れる)+突進体(溜めてコアへダッシュ)
   stages: [
-    {waves:3, base:12, hp:4, spd:26, rot:1.1},
-    {waves:4, base:15, hp:6, spd:30, rot:1.4},
-    {waves:5, base:18, hp:9, spd:33, rot:1.7},
+    {waves:3, base:12, hp:4, spd:26, rot:1.1, kind:'virus',
+     bg:['#0e2a26','#081420'], ring:'rgba(52,211,153,.10)'},
+    {waves:4, base:15, hp:6, spd:30, rot:1.4, kind:'serpent',
+     bg:['#0d1f38','#05091a'], ring:'rgba(96,165,250,.12)'},
+    {waves:5, base:18, hp:9, spd:33, rot:1.7, kind:'splitter',
+     bg:['#2a0f14','#150507'], ring:'rgba(251,146,60,.12)'},
   ],
   create(host, stage, api){
     const cfg = this.stages[stage];
@@ -4243,19 +4517,23 @@ const CellGame = {
     const hud = document.createElement('div'); hud.className = 'game-hud';
     hud.innerHTML = `<span>🫀 <b id="cl-hp">100</b></span><span>🌊 WAVE <b id="cl-w">1</b> / ${cfg.waves}</span>`;
     host.appendChild(hud);
-    api.hint('おしている間ビーム発射！🧬を集めて進化しろ');
+    api.hint(['おしている間ビーム発射！🧬を集めて進化しろ',
+              'おして発射！大蛇は節を撃って分断しろ。頭がだめなら胴を切れ',
+              'おして発射！大きいやつは倒すと分裂。点滅=突進の合図だ'][stage]);
 
     const C = {x:W/2, y:H/2-10, r:26, hp:100};
     let wave = 1, spawnLeft = cfg.base, spawnCd = 0.8, spawned = 0;
     let aim = -Math.PI/2, firing = false, heat = 0, overheat = false;
     let t = 0, over = false, paused = false, raf = 0, tPrev = 0;
-    let enemies = [];
+    let enemies = [], snakes = [];
     let dna = [], evo = 0, evoNeed = 8;
     let dmgMul = 1, beamW = 12, heatMul = 1, coolMul = 1, sats = 0, satAng = 0;
     let rings = [], surge = 0, dmgLv = 0, totalUp = 0;   // 進化演出用
     const parts = makeParticles(), floats = makeFloats(), shake = makeShake();
     const timers = [];
     const dust = Array.from({length:16}, () => [rnd(0,7), rnd(60,250), rnd(0.02,0.09), rnd(1,2.5)]); // [角度,半径,角速度,サイズ]
+    // ステージ雰囲気パーティクル(S2=立ちのぼる泡 / S3=流れる血球)
+    const amb = Array.from({length:14}, () => ({x:rnd(0,W), y:rnd(0,H), v:rnd(10,30), s:rnd(1.6,4.2), ph:rnd(0,7)}));
     const gauge = makeSkillGauge(host, '🧬', '#34d399', '#a7f3d0');
     gauge.set(0, evoNeed);
 
@@ -4266,16 +4544,57 @@ const CellGame = {
     window.addEventListener('pointerup', () => firing = false, {signal:ac.signal});
 
     function waveCount(){ return cfg.base + (wave-1)*3; }
-    function spawnEnemy(){
-      const tank = spawnLeft <= 2;
-      enemies.push({
+    function mkOrbiter(o){
+      const e = Object.assign({
         ang: rnd(0, Math.PI*2), rad: 330,
         dir: Math.random() < 0.5 ? 1 : -1,
         rot: cfg.rot * rnd(0.75, 1.3),
+        spd: cfg.spd, hp: cfg.hp, r: 12, spin: rnd(0,7), wob: rnd(0,7),
+        form: 'virus', cdmg: 8, flash: 0,
+      }, o);
+      e.max = e.hp;
+      return e;
+    }
+    function spawnSnake(len){
+      // 【S2の主役】連結ボディの大蛇。頭が螺旋を描いて迫り、体は軌跡をなぞって続く
+      const segs = [];
+      for (let i=0;i<len;i++)
+        segs.push({hp: cfg.hp*(i===0 ? 1.8 : 0.85), max: cfg.hp*(i===0 ? 1.8 : 0.85),
+                   r: i===0 ? 15 : 11.5, x:-999, y:-999, flash:0, ph:i*0.55});
+      snakes.push({ang: rnd(0, Math.PI*2), rad: 355, dir: Math.random() < 0.5 ? 1 : -1,
+                   rot: 1.35*rnd(0.9,1.15), spd: cfg.spd*0.82, segs, trail: []});
+      spawned += len; spawnLeft -= len;
+      floats.add(C.x, C.y-100, '🐍 大蛇が来る…！', '#93c5fd', 18);
+      api.sound('event');
+    }
+    function spawnEnemy(){
+      if (cfg.kind === 'serpent' && spawnLeft >= 6 && snakes.length < 2) {
+        spawnSnake(Math.min(spawnLeft, 6 + wave));
+        spawnCd = 1.3;
+        return;
+      }
+      if (cfg.kind === 'splitter' && spawnLeft >= 3 && Math.random() < 0.55) {
+        enemies.push(mkOrbiter({r:19, hp:cfg.hp*2.4, spd:cfg.spd*0.62, rot:cfg.rot*0.5,
+                                split:true, form:'blob', cdmg:14}));
+        spawned++; spawnLeft -= 3;                     // 分裂ぶんも予算を消費
+        spawnCd = 0.6;
+        return;
+      }
+      if (cfg.kind === 'splitter' && Math.random() < 0.4) {
+        enemies.push(mkOrbiter({r:10, hp:cfg.hp*0.9, spd:cfg.spd*1.1, form:'dart',
+                                dashAt:rnd(150,205), cdmg:10}));
+        spawned++; spawnLeft--;
+        spawnCd = 0.45;
+        return;
+      }
+      const tank = spawnLeft <= 2;
+      const form = cfg.kind === 'serpent' ? 'jelly' : 'virus';
+      enemies.push(mkOrbiter({
         spd: cfg.spd * rnd(0.85, 1.2) * (tank ? 0.7 : 1),
-        hp: tank ? cfg.hp*2.5 : cfg.hp, max: tank ? cfg.hp*2.5 : cfg.hp,
-        r: tank ? 17 : 12, tank, spin: rnd(0, 7),
-      });
+        rot: cfg.rot * rnd(0.75, 1.3) * (form === 'jelly' ? 0.55 : 1),
+        hp: tank ? cfg.hp*2.5 : cfg.hp,
+        r: tank ? 17 : 12, tank, form, cdmg: tank ? 14 : 8,
+      }));
       spawned++; spawnLeft--;
       spawnCd = 0.45;
     }
@@ -4286,9 +4605,25 @@ const CellGame = {
     }
     function killEnemy(e, ex, ey){
       e.dead = true;
-      parts.burst(ex, ey, {n:24, color:['#f472b6','#c084fc','#fde047','#e2e8f0'], speed:220, life:0.6, size:5, grav:0});
+      const cols = {virus:['#f472b6','#c084fc','#fde047','#e2e8f0'],
+                    jelly:['#93c5fd','#a5f3fc','#e0f2fe'],
+                    blob:['#fdba74','#fbbf24','#fff7ed'],
+                    dart:['#f87171','#fecaca','#fde047']}[e.form] || ['#f472b6','#e2e8f0'];
+      parts.burst(ex, ey, {n:24, color:cols, speed:220, life:0.6, size:5, grav:0});
       rings.push({x:ex, y:ey, r:6, v:230, max:80});      // 撃破の衝撃波
       dna.push({x:ex, y:ey, v:50});
+      if (e.split) {                                     // 【S3】分裂体は倒すと2体に割れる
+        for (let k=0;k<2;k++){
+          const child = mkOrbiter({r:11, hp:cfg.hp*0.8, spd:cfg.spd*1.15, rot:cfg.rot*1.2,
+                                   form:'blob', child:true, cdmg:7});
+          child.ang = e.ang + rnd(-0.35, 0.35);
+          child.rad = Math.max(e.rad + rnd(-6, 20), C.r + 42);
+          child.dir = k ? 1 : -1;
+          enemies.push(child);
+        }
+        floats.add(ex, ey-18, 'ぶんれつ！', '#fdba74', 14);
+        api.sound('event');
+      }
       if (Math.random() < 0.6) api.sound('hit');
     }
     const UPGRADES = [
@@ -4337,21 +4672,30 @@ const CellGame = {
         heat = Math.max(0, heat - dt * 0.6 * coolMul);
         if (overheat && heat <= 0.35) overheat = false;
       }
-      // ビームダメージ(貫通)
+      // ビームダメージ(貫通)。単体敵と大蛇の節、どちらにも通る
       const beamOn = firing && !overheat;
+      const hitLine = (ex, ey, r, ux, uy) => {
+        const dx = ex-C.x, dy = ey-C.y;
+        return (dx*ux + dy*uy > 0) && Math.abs(dx*uy - dy*ux) < r + beamW;
+      };
       if (beamOn) {
         const ux = Math.cos(aim), uy = Math.sin(aim);
         for (const e of enemies){
           const ex = C.x + Math.cos(e.ang)*e.rad, ey = C.y + Math.sin(e.ang)*e.rad;
-          const dx = ex-C.x, dy = ey-C.y;
-          const proj = dx*ux + dy*uy;
-          if (proj <= 0) continue;
-          if (Math.abs(dx*uy - dy*ux) < e.r + beamW) {
+          if (hitLine(ex, ey, e.r, ux, uy)) {
             e.hp -= 15 * dmgMul * dt;
             e.flash = 0.12;
             if (Math.random() < 0.6)
               parts.burst(ex, ey, {n:4, color:['#a7f3d0','#34d399','#fff'], speed:150, life:0.35, size:4, grav:0});
             if (e.hp <= 0) killEnemy(e, ex, ey);
+          }
+        }
+        for (const s of snakes) for (const sg of s.segs){
+          if (sg.hp > 0 && sg.x > -900 && hitLine(sg.x, sg.y, sg.r, ux, uy)) {
+            sg.hp -= 15 * dmgMul * dt;
+            sg.flash = 0.12;
+            if (Math.random() < 0.5)
+              parts.burst(sg.x, sg.y, {n:3, color:['#93c5fd','#e0f2fe'], speed:140, life:0.3, size:3, grav:0});
           }
         }
       }
@@ -4370,6 +4714,11 @@ const CellGame = {
               if (Math.random() < 0.5)
                 parts.burst(ex, ey, {n:2, color:['#a7f3d0','#fff'], speed:120, life:0.3, size:3, grav:0});
               if (e.hp <= 0) killEnemy(e, ex, ey);
+            }
+          }
+          for (const s of snakes) for (const sg of s.segs){
+            if (sg.hp > 0 && Math.hypot(sg.x-sx, sg.y-sy) < sg.r + 15) {
+              sg.hp -= 15 * dt; sg.flash = 0.12;
             }
           }
         }
@@ -4393,16 +4742,23 @@ const CellGame = {
       }
       dna = dna.filter(d => !d.got);
       gauge.set(evo, evoNeed);
-      // 敵移動(回転しながら接近)
+      // 敵移動(回転しながら接近。form ごとに挙動が変わる)
       for (const e of enemies){
         if (e.dead) continue;
-        e.rad -= e.spd * dt;
-        e.ang += e.rot * e.dir * dt;
+        if (e.form === 'dart' && e.rad <= e.dashAt) {
+          // 【S3】突進体: 一旦静止して溜め(0.7秒・明滅で予告)→ コアへ一直線
+          e.charge = (e.charge || 0) + dt;
+          if (e.charge > 0.7) e.rad -= e.spd * 4.4 * dt;             // ダッシュ!
+        } else {
+          e.rad -= e.spd * dt;
+          e.ang += e.rot * e.dir * dt;
+        }
         e.spin += dt * 3;
+        e.wob += dt * 5;
         e.flash = Math.max(0, (e.flash || 0) - dt);
         if (e.rad <= C.r + e.r) {
           e.dead = true;
-          C.hp -= e.tank ? 14 : 8;
+          C.hp -= e.cdmg;
           shake.hit(6, 0.3);
           const ex = C.x + Math.cos(e.ang)*e.rad, ey = C.y + Math.sin(e.ang)*e.rad;
           parts.burst(ex, ey, {n:12, color:'#f87171', speed:170, life:0.5, size:4, grav:0});
@@ -4412,8 +4768,48 @@ const CellGame = {
         }
       }
       enemies = enemies.filter(e => !e.dead);
+      // 【S2】大蛇の移動: 頭が螺旋、体は軌跡を距離ベースでなぞる(フレームレート非依存)
+      for (const s of snakes){
+        s.rad -= s.spd * dt;
+        s.ang += s.rot * s.dir * dt;
+        const hx = C.x + Math.cos(s.ang)*s.rad, hy = C.y + Math.sin(s.ang)*s.rad;
+        if (!s.trail.length || Math.hypot(hx-s.trail[0][0], hy-s.trail[0][1]) > 3)
+          s.trail.unshift([hx, hy]);
+        if (s.trail.length > (s.segs.length + 2) * 6) s.trail.pop();
+        s.segs.forEach((sg, i) => {
+          sg.flash = Math.max(0, sg.flash - dt);
+          if (i === 0) { sg.x = hx; sg.y = hy; return; }
+          const p = s.trail[Math.min(i*5, s.trail.length-1)];
+          if (p) { sg.x = p[0]; sg.y = p[1]; }
+        });
+        for (const sg of s.segs){                                    // コアに触れた節は自爆ダメージ
+          if (sg.x > -900 && Math.hypot(sg.x-C.x, sg.y-C.y) <= C.r + sg.r) {
+            sg.hp = 0; sg.hitCore = true;
+            C.hp -= 6;
+            shake.hit(5, 0.25);
+            parts.burst(sg.x, sg.y, {n:10, color:'#f87171', speed:150, life:0.4, size:4, grav:0});
+            api.sound('hit');
+            $('#cl-hp').textContent = Math.max(0, Math.ceil(C.hp));
+          }
+        }
+        for (let i=s.segs.length-1;i>=0;i--){                        // 死んだ節を除去
+          const sg = s.segs[i];
+          if (sg.hp <= 0){
+            if (!sg.hitCore){
+              parts.burst(sg.x, sg.y, {n:18, color:['#60a5fa','#a5b4fc','#e0f2fe'], speed:190, life:0.5, size:4, grav:0});
+              rings.push({x:sg.x, y:sg.y, r:5, v:210, max:70});
+              dna.push({x:sg.x, y:sg.y, v:50});
+              if (Math.random() < 0.5) api.sound('hit');
+            }
+            s.segs.splice(i, 1);
+          }
+        }
+        if (s.segs.length && s.segs[0].r < 15) s.segs[0].r = 15;     // 昇格した頭は太くなる
+      }
+      snakes = snakes.filter(s => s.segs.length > 0);
+      if (C.hp <= 0) return finish(false, `コアが破壊された…(WAVE ${wave})`);
       // ウェーブ進行
-      if (spawnLeft <= 0 && enemies.length === 0 && !over) {
+      if (spawnLeft <= 0 && enemies.length === 0 && snakes.length === 0 && !over) {
         if (wave >= cfg.waves) return finish(true, `全${cfg.waves}ウェーブ防衛成功！`);
         wave++;
         spawnLeft = waveCount(); spawnCd = 1.4;
@@ -4425,20 +4821,39 @@ const CellGame = {
     function draw(){
       ctx.save();
       shake.apply(ctx);
-      // シャーレ背景
+      // ステージ別の背景(S1=シャーレ / S2=深海 / S3=血流)
       const bg = ctx.createRadialGradient(C.x, C.y, 30, C.x, C.y, 330);
-      bg.addColorStop(0, '#0e2a26'); bg.addColorStop(1, '#081420');
+      bg.addColorStop(0, cfg.bg[0]); bg.addColorStop(1, cfg.bg[1]);
       ctx.fillStyle = bg; ctx.fillRect(-10,-10,W+20,H+20);
-      ctx.strokeStyle = 'rgba(52,211,153,.10)'; ctx.lineWidth = 1.5;
+      ctx.strokeStyle = cfg.ring; ctx.lineWidth = 1.5;
       [90,160,230,300].forEach(r => { ctx.beginPath(); ctx.arc(C.x, C.y, r, 0, 7); ctx.stroke(); });
-      // 浮遊プランクトン
-      ctx.fillStyle = 'rgba(167,243,208,.14)';
-      dust.forEach(d => {
-        d[0] += d[2] * 0.016;
-        ctx.beginPath();
-        ctx.arc(C.x + Math.cos(d[0])*d[1], C.y + Math.sin(d[0])*d[1], d[3], 0, 7);
-        ctx.fill();
-      });
+      if (cfg.kind === 'serpent') {                       // 深海: 立ちのぼる泡
+        ctx.fillStyle = 'rgba(147,197,253,.20)';
+        amb.forEach(a => {
+          a.y -= a.v * 0.016;
+          if (a.y < -6) { a.y = H + 6; a.x = rnd(0, W); }
+          ctx.beginPath(); ctx.arc(a.x + Math.sin(t*1.6 + a.ph)*6, a.y, a.s, 0, 7); ctx.fill();
+          ctx.strokeStyle = 'rgba(224,242,254,.18)'; ctx.lineWidth = 0.8;
+          ctx.stroke();
+        });
+      } else if (cfg.kind === 'splitter') {               // 血流: 漂う赤血球
+        amb.forEach(a => {
+          a.x += a.v * 0.016; a.y += Math.sin(t*1.2 + a.ph) * 0.3;
+          if (a.x > W + 8) { a.x = -8; a.y = rnd(0, H); }
+          ctx.fillStyle = 'rgba(190,60,60,.20)';
+          ctx.beginPath(); ctx.ellipse(a.x, a.y, a.s*1.7, a.s*1.1, a.ph, 0, 7); ctx.fill();
+          ctx.fillStyle = 'rgba(120,30,35,.22)';
+          ctx.beginPath(); ctx.ellipse(a.x, a.y, a.s*0.8, a.s*0.5, a.ph, 0, 7); ctx.fill();
+        });
+      } else {                                            // シャーレ: 浮遊プランクトン
+        ctx.fillStyle = 'rgba(167,243,208,.14)';
+        dust.forEach(d => {
+          d[0] += d[2] * 0.016;
+          ctx.beginPath();
+          ctx.arc(C.x + Math.cos(d[0])*d[1], C.y + Math.sin(d[0])*d[1], d[3], 0, 7);
+          ctx.fill();
+        });
+      }
       // 衝撃波リング(進化・撃破)
       rings.forEach(rg => {
         ctx.strokeStyle = `rgba(52,211,153,${(rg.a*0.7).toFixed(3)})`;
@@ -4497,36 +4912,153 @@ const CellGame = {
         ctx.fillStyle = 'rgba(167,243,208,.85)';
         ctx.beginPath(); ctx.arc(sx, sy, (8 + Math.sin(t*30)*2.5) * wMul, 0, 7); ctx.fill();
       }
-      // 敵(ウイルス)
+      // 敵(form ごとに描き分け)
       enemies.forEach(e => {
         const ex = C.x + Math.cos(e.ang)*e.rad, ey = C.y + Math.sin(e.ang)*e.rad;
-        const col = e.tank ? '#c084fc' : '#f472b6';
-        ctx.strokeStyle = col; ctx.lineWidth = 3;
-        for (let k=0;k<8;k++){
-          const a = e.spin + k*Math.PI/4;
+        const ea = Math.atan2(C.y-ey, C.x-ex);
+        if (e.form === 'jelly') {                          // 【S2】クラゲ: 傘の脈動+触手
+          const puls = 1 + Math.sin(e.wob)*0.14;
+          ctx.strokeStyle = 'rgba(165,243,252,.6)'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+          for (let k=-2;k<=2;k++){                         // 引きずる触手
+            const ta = ea + Math.PI + k*0.28;
+            ctx.beginPath();
+            ctx.moveTo(ex + Math.cos(ta)*e.r*0.5, ey + Math.sin(ta)*e.r*0.5);
+            ctx.quadraticCurveTo(
+              ex + Math.cos(ta)*(e.r+8) + Math.sin(e.wob*1.4+k)*4,
+              ey + Math.sin(ta)*(e.r+8) + Math.cos(e.wob*1.4+k)*4,
+              ex + Math.cos(ta)*(e.r+15) + Math.sin(e.wob+k)*6,
+              ey + Math.sin(ta)*(e.r+15) + Math.cos(e.wob+k)*6);
+            ctx.stroke();
+          }
+          const jg = ctx.createRadialGradient(ex, ey, 2, ex, ey, e.r*puls);
+          jg.addColorStop(0, 'rgba(224,242,254,.9)'); jg.addColorStop(0.7, 'rgba(125,211,252,.55)');
+          jg.addColorStop(1, 'rgba(59,130,246,.25)');
+          ctx.fillStyle = jg;
+          ctx.beginPath(); ctx.arc(ex, ey, e.r*puls, 0, 7); ctx.fill();
+          ctx.strokeStyle = 'rgba(224,242,254,.75)'; ctx.lineWidth = 1.4;
+          ctx.beginPath(); ctx.arc(ex, ey, e.r*puls, 0, 7); ctx.stroke();
+          orb(ctx, ex, ey-2, e.r*0.32, '#bae6fd', .5, -.2);
+        } else if (e.form === 'blob') {                    // 【S3】分裂体: うねるアメーバ
+          ctx.beginPath();                                 // 波打つ外周
+          for (let k=0;k<=14;k++){
+            const a = k/14 * Math.PI*2;
+            const rr = e.r * (1 + Math.sin(a*3 + e.wob)*0.13);
+            const px = ex + Math.cos(a)*rr, py = ey + Math.sin(a)*rr;
+            k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+          }
+          ctx.closePath();
+          const bgd = ctx.createRadialGradient(ex-3, ey-3, 2, ex, ey, e.r*1.15);
+          bgd.addColorStop(0, '#fed7aa'); bgd.addColorStop(0.65, '#fb923c'); bgd.addColorStop(1, '#c2410c');
+          ctx.fillStyle = bgd; ctx.fill();
+          ctx.fillStyle = 'rgba(124,45,18,.6)';            // 核(にらむ)
+          ctx.beginPath(); ctx.arc(ex + Math.cos(ea)*e.r*0.3, ey + Math.sin(ea)*e.r*0.3, e.r*0.34, 0, 7); ctx.fill();
+          ctx.fillStyle = '#fff7ed';
+          ctx.beginPath(); ctx.arc(ex + Math.cos(ea)*e.r*0.34, ey + Math.sin(ea)*e.r*0.34, e.r*0.13, 0, 7); ctx.fill();
+          if (e.split) {                                   // 大型には分裂線
+            ctx.strokeStyle = 'rgba(124,45,18,.5)'; ctx.lineWidth = 1.6;
+            ctx.beginPath(); ctx.moveTo(ex, ey-e.r*0.8); ctx.lineTo(ex, ey+e.r*0.8); ctx.stroke();
+          }
+        } else if (e.form === 'dart') {                    // 【S3】突進体: 矢じり+溜め予告
+          const charging = e.charge > 0 && e.charge <= 0.7;
+          ctx.save();
+          ctx.translate(ex, ey); ctx.rotate(ea);
+          if (charging) {                                  // 溜め: 明滅+後退の身構え
+            const bl = Math.sin(t*22) > 0 ? 0.9 : 0.35;
+            ctx.globalAlpha = bl;
+            ctx.translate(-Math.sin(e.charge*9)*2, 0);
+          }
+          const dg = ctx.createLinearGradient(-e.r, 0, e.r*1.4, 0);
+          dg.addColorStop(0, '#7f1d1d'); dg.addColorStop(0.6, '#ef4444'); dg.addColorStop(1, '#fecaca');
+          ctx.fillStyle = dg;
           ctx.beginPath();
-          ctx.moveTo(ex + Math.cos(a)*e.r, ey + Math.sin(a)*e.r);
-          ctx.lineTo(ex + Math.cos(a)*(e.r+6), ey + Math.sin(a)*(e.r+6));
-          ctx.stroke();
+          ctx.moveTo(e.r*1.5, 0); ctx.lineTo(-e.r*0.9, -e.r*0.85);
+          ctx.lineTo(-e.r*0.3, 0); ctx.lineTo(-e.r*0.9, e.r*0.85);
+          ctx.closePath(); ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(e.r*0.5, 0, e.r*0.2, 0, 7); ctx.fill();
+          ctx.restore();
+          if (e.charge > 0.7) {                            // ダッシュ中の残像
+            ctx.strokeStyle = 'rgba(248,113,113,.5)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(ex - Math.cos(ea)*e.r*2.6, ey - Math.sin(ea)*e.r*2.6);
+            ctx.lineTo(ex - Math.cos(ea)*e.r*1.2, ey - Math.sin(ea)*e.r*1.2);
+            ctx.stroke();
+          }
+        } else {                                           // 【S1】変異ウイルス(従来+膜のうねり)
+          const col = e.tank ? '#c084fc' : '#f472b6';
+          ctx.strokeStyle = col; ctx.lineWidth = 3;
+          for (let k=0;k<8;k++){
+            const a = e.spin + k*Math.PI/4;
+            const tip = e.r + 6 + Math.sin(e.wob + k)*1.6;
+            ctx.beginPath();
+            ctx.moveTo(ex + Math.cos(a)*e.r, ey + Math.sin(a)*e.r);
+            ctx.lineTo(ex + Math.cos(a)*tip, ey + Math.sin(a)*tip);
+            ctx.stroke();
+            ctx.fillStyle = col;                           // スパイクの先端球
+            ctx.beginPath(); ctx.arc(ex + Math.cos(a)*tip, ey + Math.sin(a)*tip, 1.7, 0, 7); ctx.fill();
+          }
+          ctx.fillStyle = col;
+          ctx.beginPath(); ctx.arc(ex, ey, e.r, 0, 7); ctx.fill();
+          ctx.fillStyle = 'rgba(0,0,0,.25)';
+          ctx.beginPath(); ctx.arc(ex, ey, e.r*0.55, 0, 7); ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(ex + Math.cos(ea)*e.r*0.35, ey + Math.sin(ea)*e.r*0.35, e.r*0.3, 0, 7); ctx.fill();
+          ctx.fillStyle = '#1e1b4b';
+          ctx.beginPath(); ctx.arc(ex + Math.cos(ea)*e.r*0.45, ey + Math.sin(ea)*e.r*0.45, e.r*0.15, 0, 7); ctx.fill();
         }
-        ctx.fillStyle = col;
-        ctx.beginPath(); ctx.arc(ex, ey, e.r, 0, 7); ctx.fill();
-        ctx.fillStyle = 'rgba(0,0,0,.25)';
-        ctx.beginPath(); ctx.arc(ex, ey, e.r*0.55, 0, 7); ctx.fill();
-        if (e.flash > 0) {                                 // 被弾フラッシュ
+        if (e.flash > 0) {                                 // 被弾フラッシュ(全形態共通)
           ctx.fillStyle = `rgba(255,255,255,${Math.min(e.flash*6, 0.85).toFixed(2)})`;
           ctx.beginPath(); ctx.arc(ex, ey, e.r + 3, 0, 7); ctx.fill();
         }
-        // コアをにらむ目
-        const ea = Math.atan2(C.y-ey, C.x-ex);
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(ex + Math.cos(ea)*e.r*0.35, ey + Math.sin(ea)*e.r*0.35, e.r*0.3, 0, 7); ctx.fill();
-        ctx.fillStyle = '#1e1b4b';
-        ctx.beginPath(); ctx.arc(ex + Math.cos(ea)*e.r*0.45, ey + Math.sin(ea)*e.r*0.45, e.r*0.15, 0, 7); ctx.fill();
         if (e.hp < e.max) {
           ctx.fillStyle = '#450a0a'; ctx.fillRect(ex-12, ey-e.r-12, 24, 4);
           ctx.fillStyle = '#f87171'; ctx.fillRect(ex-12, ey-e.r-12, 24*Math.max(e.hp,0)/e.max, 4);
         }
+      });
+      // 【S2】大蛇(尾から頭へ。節をつなぐ胴+発光する背骨+頭部)
+      snakes.forEach(s => {
+        const segs = s.segs.filter(sg => sg.x > -900);
+        for (let i=segs.length-1;i>=1;i--){                // 節と節をつなぐ胴
+          const a = segs[i], b2 = segs[i-1];
+          const grad = ctx.createLinearGradient(a.x, a.y, b2.x, b2.y);
+          grad.addColorStop(0, '#1e3a8a'); grad.addColorStop(1, '#3b82f6');
+          ctx.strokeStyle = grad; ctx.lineWidth = a.r*1.6; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b2.x, b2.y); ctx.stroke();
+        }
+        segs.forEach((sg, i) => {
+          const head = i === 0;
+          const sgd = ctx.createRadialGradient(sg.x-2, sg.y-3, 1, sg.x, sg.y, sg.r);
+          sgd.addColorStop(0, head ? '#93c5fd' : '#60a5fa');
+          sgd.addColorStop(0.7, head ? '#3b82f6' : '#2563eb');
+          sgd.addColorStop(1, '#1e3a8a');
+          ctx.fillStyle = sgd;
+          ctx.beginPath(); ctx.arc(sg.x, sg.y, sg.r, 0, 7); ctx.fill();
+          ctx.fillStyle = `rgba(224,242,254,${(0.5 + Math.sin(t*6 - i*0.8)*0.3).toFixed(2)})`;   // 背骨の発光
+          ctx.beginPath(); ctx.arc(sg.x, sg.y, sg.r*0.28, 0, 7); ctx.fill();
+          if (sg.flash > 0) {
+            ctx.fillStyle = `rgba(255,255,255,${Math.min(sg.flash*6, 0.85).toFixed(2)})`;
+            ctx.beginPath(); ctx.arc(sg.x, sg.y, sg.r + 2, 0, 7); ctx.fill();
+          }
+          if (sg.hp < sg.max) {
+            ctx.fillStyle = '#450a0a'; ctx.fillRect(sg.x-10, sg.y-sg.r-9, 20, 3.4);
+            ctx.fillStyle = '#93c5fd'; ctx.fillRect(sg.x-10, sg.y-sg.r-9, 20*Math.max(sg.hp,0)/sg.max, 3.4);
+          }
+          if (head) {                                      // 頭部: 目と牙
+            const ha = Math.atan2(C.y-sg.y, C.x-sg.x);
+            ctx.save();
+            ctx.translate(sg.x, sg.y); ctx.rotate(ha);
+            ctx.fillStyle = '#fde047';                     // 爛々と光る目
+            ctx.beginPath(); ctx.arc(sg.r*0.45, -sg.r*0.45, 2.6, 0, 7); ctx.fill();
+            ctx.beginPath(); ctx.arc(sg.r*0.45,  sg.r*0.45, 2.6, 0, 7); ctx.fill();
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath(); ctx.arc(sg.r*0.58, -sg.r*0.45, 1.2, 0, 7); ctx.fill();
+            ctx.beginPath(); ctx.arc(sg.r*0.58,  sg.r*0.45, 1.2, 0, 7); ctx.fill();
+            ctx.fillStyle = '#e0f2fe';                     // 牙
+            ctx.beginPath(); ctx.moveTo(sg.r*0.95, -sg.r*0.4); ctx.lineTo(sg.r*1.5, -sg.r*0.15); ctx.lineTo(sg.r*0.9, -sg.r*0.05); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(sg.r*0.95,  sg.r*0.4); ctx.lineTo(sg.r*1.5,  sg.r*0.15); ctx.lineTo(sg.r*0.9,  sg.r*0.05); ctx.closePath(); ctx.fill();
+            ctx.restore();
+          }
+        });
       });
       // DNAオーブ
       dna.forEach(d => {
