@@ -54,25 +54,45 @@ globalThis.FishingControls = {
     on(ui.primary,'keyup',event=>{if(active==='keyboard'&&['ArrowLeft','ArrowRight'].includes(event.code)){event.preventDefault();rod(0);}});
     // Only a short, uninterrupted tap which started on the water view can cast.
     let castTap=null;
+    const recentSchool=[];
+    function rememberSchool(value){
+      if(value.phase!=='Aim'||value.paused){recentSchool.length=0;return;}
+      if(ui.castTarget?.hidden!==false||!Number.isFinite(value.castTargetX)||!Number.isFinite(value.castTargetY))return;
+      recentSchool.push({x:value.castTargetX,y:value.castTargetY,at:Date.now()});
+      if(recentSchool.length>6)recentSchool.shift();
+    }
+    function tappedSchoolMark(event){
+      if(!recentSchool.length)return false;
+      const r=ui.canvas.getBoundingClientRect(),now=Date.now();
+      const half=Math.max(84,Math.min(116,r.width*.25))*.5;
+      return recentSchool.some(p=>{
+        const x=event.clientX-r.left-p.x*r.width,y=event.clientY-r.top-p.y*r.height;
+        return now-p.at<=420&&Math.abs(x)<=half+10&&y>=-58&&y<=30;
+      });
+    }
     function clearCastTap(){castTap=null;}
     function bindCastSurface(target, onSchool){
       on(target,'pointerdown',event=>{
         if(!started||locked()||state.phase!=='Aim'||event.isPrimary===false||
             (event.pointerType==='mouse'&&event.button!==0))return;
-        castTap={surface:target,id:event.pointerId,x:event.clientX,y:event.clientY};
+        castTap={surface:target,id:event.pointerId,x:event.clientX,y:event.clientY,school:onSchool||tappedSchoolMark(event)};
         // Keep ownership of a tap while the projected shoal moves underneath the finger.
         if(onSchool)target.setPointerCapture?.(event.pointerId);
       });
       on(target,'pointermove',event=>{
         if(castTap?.id===event.pointerId&&Math.hypot(event.clientX-castTap.x,event.clientY-castTap.y)>14)clearCastTap();
       });
-      for(const name of ['pointercancel','lostpointercapture','pointerleave'])on(target,name,clearCastTap);
+      for(const name of ['pointercancel','lostpointercapture','pointerleave'])on(target,name,event=>{
+        if(castTap?.surface!==target||castTap.id!==event.pointerId)return;
+        if(name==='pointerleave'&&onSchool&&target.hasPointerCapture?.(event.pointerId))return;
+        clearCastTap();
+      });
       on(target,'pointerup',event=>{
         const tap=castTap;
         if(!tap||tap.surface!==target||tap.id!==event.pointerId)return;
         clearCastTap();
         if(locked()||state.phase!=='Aim'||Math.hypot(event.clientX-tap.x,event.clientY-tap.y)>14)return;
-        if(onSchool){send('CastAtSchool');return;}
+        if(tap.school){send('CastAtSchool');return;}
         const rect=ui.canvas.getBoundingClientRect();send('CastAt',`${(event.clientX-rect.left)/rect.width},${1-(event.clientY-rect.top)/rect.height}`);
       });
     }
@@ -102,7 +122,13 @@ globalThis.FishingControls = {
     for(const decision of ['keep','release'])on(ui[decision],'click',()=>{if(!locked()&&state.catchReady)send('Decide',decision);});
     for(const [i,tab] of (ui.tabs||[]).entries())on(tab,'click',()=>{if(!menu||background)return;page(i);});
     for(const [i,button] of (ui.lessonButtons||[]).entries())on(button,'click',()=>{if(menu&&!background)send('ReadLesson',String(i));});
-    for(const [i,button] of (ui.regionButtons||[]).entries())on(button,'click',()=>{if(!menu||background||!state?.canTravel||state.region===i)return;release();menu=false;ui.drawer.hidden=true;ui.menu.setAttribute('aria-expanded','false');send('CloseMenu');send('TravelTo',String(i));sync();});
+    function travel(index){
+      if(!menu||background||!state?.canTravel||state.region===index)return;
+      release();menu=false;ui.drawer.hidden=true;ui.menu.setAttribute('aria-expanded','false');
+      send('CloseMenu');send('TravelTo',String(index));ui.menu.focus?.({preventScroll:true});sync();
+    }
+    for(const buttons of [ui.regionButtons||[],ui.markers||[]])
+      buttons.forEach((button,index)=>on(button,'click',()=>travel(index)));
     for(const [i,button] of (ui.fishPartButtons||[]).entries())on(button,'click',()=>{if(menu&&!background)FishingNotebookUI.showFishPart(i,ui);});
     if(ui.memories)on(ui.memories,'change',()=>{if(menu&&!background&&!state?.catchReady)send('ReadCatch',ui.memories.value);});
     function movement(x,y){if(!Number.isFinite(x)||!Number.isFinite(y))return;const n=Math.hypot(x,y);if(n<.01)x=y=0;else if(n>1){x/=n;y/=n;}const value=x.toFixed(3)+','+y.toFixed(3);if(value!==lastMove){lastMove=value;send('MoveInput',value);}}
@@ -138,6 +164,6 @@ globalThis.FishingControls = {
     on(document,'visibilitychange',()=>document.hidden?suspend():resume());
     on(window,'blur',suspend);on(window,'pagehide',suspend);on(window,'focus',resume);on(window,'pageshow',resume);
     on(window,'resize',release);on(window,'orientationchange',release);
-    return {release,update(value){state=value;if(state.phase!=='Aim'||state.paused)clearCastTap();if(state.phase!=='Intro')started=true;if(state.phase!=='Explore'||state.paused)stopMove();if(state.phase!=='Reeling'&&active!==null)release();sync();},dispose(){release();listeners.forEach(fn=>fn());}};
+    return {release,update(value){state=value;rememberSchool(value);if(state.phase!=='Aim'||state.paused)clearCastTap();if(state.phase!=='Intro')started=true;if(state.phase!=='Explore'||state.paused)stopMove();if(state.phase!=='Reeling'&&active!==null)release();sync();},dispose(){release();listeners.forEach(fn=>fn());}};
   }
 };

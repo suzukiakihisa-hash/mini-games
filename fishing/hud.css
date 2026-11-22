@@ -24,7 +24,7 @@ button{font:inherit;min-height:48px;border:0;border-radius:18px;padding:10px 14p
 [hidden]{display:none!important}@media(max-width:360px){#primary{width:124px;right:16px;font-size:16px}#explore-again{left:16px;width:112px}header{padding-left:14px}#depths button{font-size:12px}#prep{padding:13px}}@media(max-height:560px){h1,#place{display:none}#hint{margin-top:0;font-size:15px}#tackle{display:none}#prep,#journey-result,#catch{max-height:calc(100% - var(--top) - var(--bottom) - 155px);bottom:calc(var(--bottom) + 118px);padding:12px}#prep p{font-size:12px;margin-bottom:6px}#primary{height:76px;bottom:calc(var(--bottom) + 20px)}#fight{top:calc(var(--top) + 62px)}#catch{bottom:calc(var(--bottom) + 12px);max-height:70%}}
 #cast-target{position:absolute;z-index:2;transform:translate(-50%,-50%);width:clamp(84px,25vw,116px);height:58px;padding:0;min-height:0;border:0;background:transparent;color:#183e48;touch-action:none}
 /* One open target surrounds the fish. The hand lands on its upper edge. */
-.cast-frame{position:absolute;inset:10px 3px 6px;border:2px solid #ffebad;border-radius:50%;box-shadow:0 0 0 1px #244d57b3,inset 0 0 0 1px #24556080}
+.cast-frame{pointer-events:none;position:absolute;inset:10px 3px 6px;border:2px solid #ffebad;border-radius:50%;box-shadow:0 0 0 1px #244d57b3,inset 0 0 0 1px #24556080}
 .cast-tag::after{content:"";position:absolute;bottom:-4px;left:12px;width:6px;height:6px;background:#ffdb80;border:solid #fff6dc;border-width:0 1px 1px 0;transform:rotate(45deg)}
 #first-step{position:absolute;z-index:1;width:44px;height:23px;transform:translate(-50%,-50%);border:2px solid #fff0b3;border-radius:50%;box-shadow:0 0 0 1px #204850;pointer-events:none;color:#233d3d}
 #first-step span{position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:4px;white-space:nowrap;font-size:12px;font-weight:750;border-radius:11px;background:#ffdc87;padding:3px 8px}
@@ -208,4 +208,31 @@ button{font-weight:650}
  #signal.nibble::before{animation:float-nod .55s ease-in-out 2 alternate}
  @keyframes float-nod{to{transform:translateY(3px) rotate(-8deg)}}
 }
+
+#drawer:has(#map-page:not([hidden])){max-height:calc(100% - var(--top) - var(--bottom) - 88px)}
+#map-page h3{margin:10px 0 8px}
+#travel-message:empty{display:none}
+#destinations{display:grid;gap:5px}
+#drawer #destinations button{
+  display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:10px;
+  width:100%;min-height:46px;margin:0;padding:5px 12px 5px 7px;
+  text-align:left;font-size:16px;line-height:1.2;color:#183c43;
+  background:#f7fcf8;border:1px solid #b5ceca;border-radius:12px;
+}
+#destinations button::before{
+  content:attr(data-water);display:grid;place-items:center;width:31px;height:32px;
+  border-radius:8px 8px 13px 8px;background:#d1e5eb;color:#255966;font-size:13px;
+}
+#destinations button[data-water="川"]::before{color:#285d3b;background:#d8e7c9}
+#destinations button[data-water="湖"]::before{color:#3f597e;background:#dfe4f0}
+#destinations button::after{content:attr(data-action);color:#12626a;font-size:14px}
+#drawer #destinations button[aria-pressed=true]{background:#e5ede4;color:#395650;border-color:#bacbbb;opacity:1}
+#drawer #destinations button[aria-pressed=true]::after{font-size:12px;color:#4d695f}
+#destination-map{position:relative;width:100%;height:174px;border-radius:12px;overflow:hidden}
+#destination-map svg{width:100%;height:100%;display:block}#destination-map text{font:13px system-ui;fill:#48615b}
+#drawer #destination-map button{position:absolute;transform:translate(-50%,-50%);min-height:44px;min-width:48px;
+  margin:0;padding:6px;border:1px solid #638981;border-radius:18px;color:#204c47;background:#fff9eb;font-size:12px}
+#drawer #destination-map .selected{opacity:1;background:#275b56;color:white}
+#dace-study{display:block;width:100%;max-height:130px;background:linear-gradient(#e1ead8,#faf5dd);border-radius:12px}
+#first-fish[data-fish=dace] .aji-detail,#first-fish[data-fish=aji] .dace-detail{display:none}
 

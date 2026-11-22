@@ -38,14 +38,27 @@ globalThis.FishingNotebookUI={
     'マアジは群れで泳ぐ魚。ゲームでも魚影を見つけ、えさの深さを合わせてみよう。',
     '持ち帰る魚は大人と保冷して家へ。料理も大人と一緒に。必要な分だけ持ち帰る選び方を大切にしよう。'
   ],
-  showFishPart(id,ui){if(id<0||id>2)return;ui.fishPartButtons.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===id)));ui.fishNote.textContent=this.fishNotes[id];ui.fishScutes.classList.toggle('dim',id!==0);},
+  daceNotes:[
+    'ウグイの背びれは、体のまんなかにひとつあるよ。',
+    '川の流れがゆるむところや湖で、泳ぐ群れをさがそう。',
+    '地域によっては塩焼きや甘露煮にする魚だよ。持ち帰りと料理は大人と一緒に。'
+  ],
+  showFishPart(id,ui){if(id<0||id>2)return;ui.fishPartButtons.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===id)));ui.fishNote.textContent=(ui.fishNote.dataset.species==='ウグイ'?this.daceNotes:this.fishNotes)[id];ui.fishScutes.classList.toggle('dim',id!==0);},
   lessonStatus(read,tried,id){return (tried&(1<<id))&&id<3?'つりで試した':(read&(1<<id))?'見た':'これから';},
   render(value,ui){
     const regions=value.regions||[],lessons=value.lessons||[];
+    const species=value.bookSpecies||'マアジ',dace=species==='ウグイ';
+    if(ui.fishNote.dataset.species!==species){
+      ui.fishNote.dataset.species=species;
+      ui.fishPartButtons[0].textContent=dace?'背びれ':'ぜいご';
+      ui.fishDiagram.hidden=dace;ui.daceDiagram.hidden=!dace;
+      ui.fishTitle.textContent=species+' · わたしの魚ずかん';
+      this.showFishPart(0,ui);
+    }
     this.renderFieldNotes(value,ui);
-    ui.memory.textContent=value.catchReady?'いま釣れた魚は、持ち帰り・リリースを選ぶと記録に残るよ。':value.landed?`自分で釣ったマアジ：${value.landed}匹 · 最大 ${value.best.toFixed(1)} cm\nさいきんの1匹：${value.lastFish||'記録に残っているよ'}`:'まだ釣っていないよ。最初の1匹を、ずかんの思い出にしよう。';
+    ui.memory.textContent=value.catchReady?'いま釣れた魚は、持ち帰り・リリースを選ぶと記録に残るよ。':value.landed?`自分で釣った魚：${value.landed}匹 · 最大 ${value.best.toFixed(1)} cm\nさいきんの1匹：${value.lastFish||'記録に残っているよ'}`:'まだ釣っていないよ。最初の1匹を、ずかんの思い出にしよう。';
     const count=mask=>[0,1,2].filter(i=>(mask||0)&(1<<i)).length;
-    ui.discoveries.textContent=`旅の思い出 ${count(value.visitedMask)}/3の海 · つりで試したこと ${count(value.triedMask)}/3`;
+    ui.discoveries.textContent=`旅の思い出 ${regions.filter(r=>(value.visitedMask||0)&(1<<r.id)).length}/${regions.length}の水辺 · つりで試したこと ${count(value.triedMask)}/3`;
     ui.memories.disabled=!!value.catchReady||!(value.memories?.length);
     const memoryKey=JSON.stringify(value.memories||[]);if(ui.memories.dataset.key!==memoryKey){ui.memories.replaceChildren(...(value.memories||[]).map(memory=>{const option=document.createElement('option');option.value=memory.id;option.textContent=memory.title;return option;}));ui.memories.dataset.key=memoryKey;}ui.memories.value=value.selectedCatchId||'';
     const discovery=this.fieldNotes[value.selectedFieldNote];
@@ -59,7 +72,11 @@ globalThis.FishingNotebookUI={
     ui.regionButtons.forEach((button,i)=>{
       const r=regions[i];button.disabled=!r||!value.canTravel||value.region===i;
       button.setAttribute('aria-pressed',String(value.region===i));
-      button.textContent=r?`${r.name}${value.region===i?' · いまここ':value.visitedMask&(1<<i)?' · 訪問ずみ':''}\n${r.description}`:'';
+      const action=value.region===i?'いまここ':value.canTravel?'行く ›':'';
+      button.textContent=r?.name||'';button.dataset.action=action;
+      const label=r?r.name+' · '+(value.region===i?'いまここ':'ここへ行く'):'';
+      button.setAttribute('aria-label',label);
+      ui.markers[i].disabled=button.disabled;ui.markers[i].setAttribute('aria-label',label);
       ui.markers[i].classList.toggle('selected',value.region===i);
     });
     ui.lessonButtons.forEach((button,i)=>{

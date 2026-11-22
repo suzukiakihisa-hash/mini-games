@@ -21,7 +21,7 @@ const FishingGuideVoice=(()=>{
       // The little cheer starts as the fish is secured and can finish over the measurement.
       case 'Landing':return value.phaseAge>=.75?'landed':'';
       case 'Measuring':return 'landed';
-      case 'Catch':return value.catchReady&&value.landed===0?'fish-maaji':'landed';
+      case 'Catch':return value.catchReady&&(value.firstSpecies??value.landed===0)&&value.species!=='ウグイ'?'fish-maaji':'landed';
       case 'AfterCatch':
         if(value.latestFieldNote===1)return 'note-depth';
         if(value.latestFieldNote===2)return 'note-bite';
