@@ -1,0 +1,92 @@
+ぼくのつり旅 — Unity 海の試作 / 素材の出典
+確認日: 2026-10-16
+
+Adult guide and archived character versions: Snow Rig (CC) Blender Foundation | studio.blender.org
+Snow v4, supplied as snow_v4.2.blend; Blender Studio, publisher Demeter Dzadik.
+https://studio.blender.org/characters/snow/v4/
+Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+Modified: child proportions, jaw/neck/nose/brows, shorter hairstyle and clothing fit;
+51-bone/two-weight mobile skeleton; native eyelid/smile/cheek/jaw expressions baked
+to two shapes; 1024px colour and 512px normal/roughness shared atlases; game materials.
+An original short hair crown was fitted to the licensed head surface.
+Original fitted flotation vests and straight fringe/temple hair locks were created
+for this project in Blender. Version 0.10 adapts the protagonist into a Japanese
+primary-school boy: child silhouette, softer jaw/cheeks/nose, balanced eyes,
+black hairstyle, brown irises and warm skin, with gentler posture and shorter steps.
+The adult guide and the archived 0.9-0.11 protagonist derive from Snow, not claimed
+as wholly original project models. The source and author do not endorse this game.
+
+Version 0.11: reference-led rounded child face and large cranium; original layered
+swept hair; native Snow lower legs and solid animated-eye topology; clipped shorts,
+original socks, red/white shoe materials and projected brown irises/highlights.
+The user-supplied Anime Kodomo Boy product image is a visual design reference only;
+no model or texture was purchased, downloaded or extracted from that product.
+
+Previous character sources (versions 0.5-0.8, retained for history):
+
+MakeHuman / MPFB core assets — CC0 1.0 Universal
+MakeHuman Community / Data Collection AB / Joel Palmius / Jonas Hauquier and contributors.
+Body topology, Asian male child/young targets, game-engine rig/weights,
+male_casualsuit03/01 and shoes01. Original skin/eye/hair data are retained as sources.
+https://static.makehumancommunity.org/about/license.html
+https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html
+https://github.com/makehumancommunity/mpfb2
+Revision: 3af0cd5a2ffba072e93a34e5f6f494fdc4813ddf
+Modified: short, broad cartoon body and hand proportions, clothes fitting, hidden/head geometry removal,
+two-weight skinning, 256px character texture limits and illustrated clothing colours, and small clothing clearance offsets.
+The sculpted continuous heads, fitted eyelids, swept hair, smile/blink shapes,
+curved caps, life jackets and procedural animation in former version 0.8.0 were authored for this project.
+No MakeHuman application code is bundled.
+
+Faceunits 01 — Mika Suominen — CC0 1.0 Universal
+eyeBlinkLeft/Right, mouthSmileLeft/Right were used in versions 0.5-0.6.
+Retained source data; the cartoon expressions in 0.7-0.8 are project-authored replacements.
+https://static.makehumancommunity.org/assets/assetpacks/faceunits01.html
+
+Poly Haven — CC0 1.0 Universal
+Concrete Floor 02 / Aerial Grass Rock — Rob Tuytel
+https://polyhaven.com/a/concrete_floor_02
+https://polyhaven.com/a/aerial_grass_rock
+Coast Rocks 03 — Rico Cilliers / Rob Tuytel
+https://polyhaven.com/a/coast_rocks_03
+The source scan is reduced from 813,464 to 17,999 triangles with attribute-aware edge collapse.
+Only this reduced mesh and resized texture maps are bundled; the full scan is not bundled.
+Kloofendal 48d Partly Cloudy (Pure Sky) — Greg Zaal / Jarod Guest
+https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky
+https://polyhaven.com/license
+Modified: texture size limits, UV projection, material/lighting adjustment.
+
+MaAji.jpg — Izuzuki — Creative Commons Attribution 2.5 Generic (CC BY 2.5)
+https://commons.wikimedia.org/wiki/File:MaAji.jpg
+Original source: http://www.izuzuki.com/
+License: https://creativecommons.org/licenses/by/2.5/
+Modified: projected onto an original animated 3D mesh; reduced texture resolution,
+underwater colour cast neutralisation and real-time lighting/reflection.
+The photographer does not endorse this game. This notice must accompany the texture and its use.
+
+Version 0.12 protagonist: an original child-first model authored in this project
+using Blender, with original hair/clothes/shoes/eyes, fitted safety equipment,
+finger rig, eyelid and smile shapes. No Snow geometry or reference-product model
+was used for this child. The user-supplied picture is a visual reference only;
+its pixels are not bundled as game assets.
+
+Other game meshes, shaders, controls and generated sounds are project-authored unless stated above.
+Third-party assets are not relicensed as the project's own work.
+
+Offline conversion tool (not included in the Web game): meshoptimizer 1.3.0
+Copyright (c) 2016-2026 Arseny Kapoulkine. MIT License.
+https://github.com/zeux/meshoptimizer
+The complete tool license is preserved in Tools/Vendor/meshoptimizer/LICENSE.md.
+
+Offline modelling/conversion: Blender 4.5.14 LTS, Blender Foundation.
+https://www.blender.org/releases/4-5/
+Official portable distribution; Blender is GPL software with bundled components
+under their own licences. The tool is kept locally and is not bundled in the Web game.
+
+Japanese guide voice in 0.51 and the three fishing field-note lines in 0.54: Kokoro-82M jm_kumo by hexgrad (Apache-2.0).
+https://huggingface.co/hexgrad/Kokoro-82M
+ONNX conversion by onnx-community, Apache-2.0.
+https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX
+Voice lines, pacing and waveform edits were prepared for this project.
+Only the rendered Japanese clips are in the Web game.

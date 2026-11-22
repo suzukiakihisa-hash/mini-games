@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 32" fill="none" stroke="#153b48" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Five cells, read left to right: float, cast, lift, reel, open hand. -->
+  <g>
+    <path d="m13 22 3-16c.6-3 5-2 4.5.8l-3 16z" fill="#fff6dc"/>
+    <path d="m16 7 .4-2c.6-2.8 5-2 4.5.9l-1 5.1-4.6-.8z" fill="#ef713c"/>
+    <path d="m15 23-.7 4M4 24q4-2 7 0m8 1q5-2 9-.2"/>
+  </g>
+  <g transform="translate(32)">
+    <path d="m5 27 7-13q4-7 10-7M8 21l4 2" stroke-width="2.7"/>
+    <path d="M21 7q6 0 5 12" stroke-dasharray="2 3"/><circle cx="25.7" cy="23" r="2.2" fill="#ed7743"/>
+  </g>
+  <g transform="translate(64)">
+    <path d="m6 28 12-15q3-3 8-4M9 22l4 3"/>
+    <path d="M10 15V4m-5 5 5-5 5 5" stroke-width="3"/>
+  </g>
+  <g transform="translate(96)">
+    <circle cx="15" cy="17" r="7.3" fill="#fff6db"/><circle cx="15" cy="17" r="2" fill="#153b48"/>
+    <path d="m15 17 7 4 3-3"/><circle cx="25.5" cy="17.8" r="2.1" fill="#ec7743"/>
+    <path d="M5 13a11.5 11.5 0 0 1 18-6m-1-4 2 5-5 1"/>
+  </g>
+  <g transform="translate(128)" fill="#fff6db">
+    <path d="M12 17V7.8c0-2.3 3.2-2.5 3.2 0V15 5.5c0-2.5 3.4-2.5 3.4.1v9.6-7.1c0-2.4 3.2-2.4 3.2.1v8.6-4.7c0-2.2 3.2-2.2 3.2.1V21c0 6.5-4.2 8.2-7.8 8.2S11.3 27.4 9 24l-4-6.2c-1.2-2.2 1.4-4.2 3.2-2.4L12 19z"/>
+  </g>
+</svg>
