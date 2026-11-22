@@ -32,7 +32,7 @@ const FishingGuideVoice=(()=>{
     }
   }
 
-  function attach(win,doc,showVoice){
+  function attach(win,doc,showVoice,onAudioReady=()=>{}){
     const AudioContext=win.AudioContext||win.webkitAudioContext;
     const clips=new Map();
     let context,request,source;
@@ -78,8 +78,9 @@ const FishingGuideVoice=(()=>{
       if(!AudioContext||doc.hidden)return;
       try{
         context??=new AudioContext();
-        if(context.state==='running')play();
-        else context.resume().then(play).catch(()=>{});
+        const ready=()=>{onAudioReady(context);play();};
+        if(context.state==='running')ready();
+        else context.resume().then(ready).catch(()=>{});
       }catch{ /* Audio activation may be unavailable. */ }
     }
     for(const event of ['pointerup','click','keydown'])win.addEventListener(event,unlock,{capture:true,passive:true});

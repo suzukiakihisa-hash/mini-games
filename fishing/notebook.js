@@ -1,5 +1,6 @@
 'use strict';
 globalThis.FishingNotebookUI={
+  metres(value){return Math.round(value*10)/10;},
   fieldNotes:{
     1:{title:'魚がいる深さ「タナ」',fact:'魚が泳ぐ深さを「タナ」というよ。',tryNext:'ウキから えさまでの長さを変えると、べつの深さをさぐれるよ。'},
     2:{title:'ウキが教える「アタリ」',fact:'魚がえさをくわえた合図を「アタリ」というよ。',tryNext:'ウキがしずむときのほかに、横に動くこともあるよ。'},
@@ -10,7 +11,7 @@ globalThis.FishingNotebookUI={
     diagram.hidden=!page;
     if(!page)return false;
     const label='手帳に発見！ '+page.title;
-    const description=value.latestFieldNote===1?`えさを ${value.latestNoteDepth} m にしたら、食いついた！`:
+    const description=value.latestFieldNote===1?`えさを ${this.metres(value.latestNoteDepth)} m にしたら、食いついた！`:
       value.latestFieldNote===2?'ウキがしずんでから、合わせられたね。':'強く引かれたとき、巻く手を休められたね。';
     if(diagram.dataset.page!==String(value.latestFieldNote))diagram.dataset.page=String(value.latestFieldNote);
     if(title.textContent!==label)title.textContent=label;
@@ -66,7 +67,7 @@ globalThis.FishingNotebookUI={
     const memoryKey=JSON.stringify(value.memories||[]);if(ui.memories.dataset.key!==memoryKey){ui.memories.replaceChildren(...(value.memories||[]).map(memory=>{const option=document.createElement('option');option.value=memory.id;option.textContent=memory.title;return option;}));ui.memories.dataset.key=memoryKey;}ui.memories.value=value.selectedCatchId||'';
     const discovery=this.fieldNotes[value.selectedFieldNote];
     ui.story.textContent=value.catchStory?(value.catchTitle?value.catchTitle+'\n':'')+value.catchStory+(discovery?'\nこの魚で見つけたこと：'+discovery.title:''):'この1匹の地点・深さ・操作は、これからの釣果に残るよ。';
-    const area=value.region||0;ui.spots.textContent=(value.pointLabels||[]).map((name,i)=>{const at=area*3+i,n=value.pointCounts?.[at]||0;return name+(value.pointMarks?.[i]?'（'+value.pointMarks[i]+'）':'')+'：'+n+'匹'+(value.pointBest?.[at]?' · 最大 '+value.pointBest[at].toFixed(1)+' cm':'')+(value.pointStyles?.[i]?'\n  '+value.pointStyles[i]:'');}).join('\n');
+    const area=value.region||0;ui.spots.textContent=(value.pointLabels||[]).map((name,i)=>{const at=area*3+i,n=value.pointCounts?.[at]||0;return name+(value.pointMarks?.[i]?'（'+value.pointMarks[i]+'）':'')+'：'+n+'匹'+(value.pointBest?.[at]?' · 最大 '+value.pointBest[at].toFixed(1)+' cm':'')+((value.observationMask||0)&(1<<at)?' · タナの観察あり':'')+(value.pointStyles?.[i]?'\n  '+value.pointStyles[i]:'');}).join('\n');
     ui.fish.textContent=value.fishInfo||'';ui.gear.textContent=value.gearInfo||'';
     const current=regions.find(r=>r.id===value.region);
     ui.current.textContent=current?`${current.name} · ${current.reference}`:'';
@@ -98,10 +99,26 @@ globalThis.FishingNotebookUI={
 };
 
 globalThis.FishingOutfit={
-  catalog:[],outings:[],spotNames:[],viewKey:'',listKey:'',current:null,
+  catalog:[],outings:[],spotNames:[],costs:[],viewKey:'',listKey:'',current:null,
+  seasons:['春','夏','秋','冬'],hours:['朝','昼','夕方'],
   rods:['はじめの磯竿 · 6m','遠投の万能竿 · 9m','大物用の船竿 · 12m'],
-  baits:[['アミエビ・ウキサビキ','イソメ・ちょい投げ','小魚ルアー'],['ミミズ・ウキ','紅サシ・小針','スプーンルアー'],['オキアミ・コマセ','イワシ・泳がせ','メタルジグ']],
-  shop:[[1,35,'遠投の万能竿','遠くに投げて、クロダイやニジマスも。'],[4,30,'力もちリール','ひと巻きで魚をよせる距離がのびる。'],[8,25,'ルアーセット','港の小魚ルアー、川のスプーン、船のジグ。'],[2,85,'大物用の船竿','沖のキハダに届く。船のきっぷで解禁。']],
+  baits:[['アミエビ・ウキサビキ','イソメ・ちょい投げ','小魚ルアー'],['ミミズ・ウキ','紅サシ','スプーンルアー'],['オキアミ・コマセ','イワシ・泳がせ','メタルジグ']],
+  shop:[
+    [16,'砂地のキス針','イソメでシロギスをねらいやすい。横須賀の砂地へ。'],
+    [32,'湖の小針','紅サシでワカサギをねらいやすい。冬の丹沢湖へ。'],
+    [1,'遠投の万能竿','投げられる長さ 6 → 9 m。市原のクロダイや丹沢湖のニジマスへ。'],
+    [8,'ルアーセット','港の小魚ルアー、川・湖のスプーン、船のジグが使える。'],
+    [4,'力もちリール','いつもの速さで巻くと、魚をよせる速さが24％アップ。'],
+    [2,'大物用の船竿','投げられる長さ 12 m。ジグとそろえるとキハダの釣行へ。']
+  ],
+  price(mask,purchases=0){
+    let sum=0; const missing=mask&~purchases;
+    for(let slot=0;slot<6;slot++)if(missing&(1<<slot)){
+      if(!Number.isFinite(this.costs[slot]))return Infinity;
+      sum+=this.costs[slot];
+    }
+    return sum;
+  },
   entry(id,v){if(v?.catalog?.length)this.catalog=v.catalog;return this.catalog.find(f=>f.id===id);},
   habitat(f,regions){return (regions||[]).filter(r=>f.areas&(1<<r.id)).map(r=>r.name).join('・');},
   options(select,options,selected,available){
@@ -110,7 +127,7 @@ globalThis.FishingOutfit={
     }));select.value=String(selected);
   },
   connect($,send){
-    for(const key of ['rod','bait'])$('outfit-'+key).addEventListener('change',e=>send(key+':'+e.target.value));
+    for(const key of ['rod','bait','season','time'])$('outfit-'+key).addEventListener('change',e=>send(key+':'+e.target.value));
     $('shop-items').addEventListener('click',e=>{const button=e.target.closest('button[data-buy]');if(button&&!button.disabled)send('buy:'+button.dataset.buy);});
     $('tuna-target').addEventListener('click',()=>send('tuna:'+(this.current?.tunaTarget?'0':'1')));
   },
@@ -118,27 +135,34 @@ globalThis.FishingOutfit={
     this.current=v;
     if(v.outings?.length)this.outings=v.outings;
     if(v.allSpots?.length)this.spotNames=v.allSpots;
+    if(v.gearCosts?.length)this.costs=v.gearCosts;
     this.entry(v.speciesId,v);
-    const key=[v.region,v.landed,v.coins,v.purchases,v.gearRod,v.bait,v.season,v.dayTime,v.tunaTarget,v.boatPass,v.abroad,v.canTravel,v.readOnly,v.gearMessage,v.goal,v.foundMask,v.plan,v.cookedMask,this.catalog.length].join('|');
+    const key=[v.region,v.landed,v.coins,v.purchases,v.gearRod,v.bait,v.season,v.dayTime,v.tunaTarget,v.boatPass,v.abroad,v.canTravel,v.readOnly,v.gearMessage,v.goal,v.foundMask,v.observationMask,v.plan,v.cookedMask,this.catalog.length,this.costs.length].join('|');
     if(key===this.viewKey)return;this.viewKey=key;
     this.renderOutings(v,$);
     const own=(item)=>!!((v.purchases||0)&item), always=()=>true;
     const sea=v.region>=5?2:v.region>=3?1:0;
     this.options($('outfit-rod'),this.rods,v.gearRod||0,i=>i===0||own(i===1?1:2));
-    this.options($('outfit-bait'),this.baits[sea],v.bait||0,i=>i!==2||own(8));
-    for(const key of ['rod','bait'])$('outfit-'+key).disabled=!v.canTravel||v.readOnly;
+    const baits=this.baits[sea].slice();
+    if(v.region===1&&own(16))baits[1]='イソメ・砂地のキス針';
+    if(v.region===4&&own(32))baits[1]='紅サシ・湖の小針';
+    this.options($('outfit-bait'),baits,v.bait||0,i=>i!==2||own(8));
+    this.options($('outfit-season'),this.seasons,v.season??1,always);
+    this.options($('outfit-time'),this.hours,v.dayTime??0,always);
+    for(const key of ['rod','bait','season','time'])$('outfit-'+key).disabled=!v.canTravel||v.readOnly;
     $('wallet').textContent=(v.coins||0)+' コイン';
     $('outfit-status').textContent=v.gearMessage||'';
-    $('kit-targets').textContent='この組み合わせでねらえる魚　'+(v.targets||'');
+    $('kit-targets').textContent=v.targets?'この日の群れ　'+v.targets:'このえさに合う魚は おやすみ。えさをかえてみよう。';
     $('kit-goal').textContent=v.goal||'';
     $('map-goal').textContent='いつかキハダマグロを釣ろう。'+(v.goal||'');
     $('map-fish').textContent='この水辺の魚　'+this.catalog.filter(f=>f.areas&(1<<(v.region||0))).map(f=>f.name).join('・');
     const goal=$('tuna-target');goal.hidden=!v.tunaReady;goal.disabled=!v.canTravel;goal.setAttribute('aria-pressed',String(!!v.tunaTarget));goal.textContent=v.tunaTarget?'キハダをねらい中 · やめる':'マグロをねらう';
-    $('shop-items').replaceChildren(...this.shop.map(([item,price,name,benefit])=>{
+    $('shop-items').replaceChildren(...this.shop.map(([item,name,benefit])=>{
       const row=document.createElement('div'),title=document.createElement('strong'),tip=document.createElement('small'),buy=document.createElement('button');
+      const price=this.price(item);
       row.className='shop-row';title.textContent=name;tip.textContent=benefit;buy.dataset.buy=String(item);buy.type='button';
       buy.disabled=!v.canTravel||v.readOnly||own(item)||(v.coins||0)<price||(item===2&&!v.boatPass);
-      buy.textContent=own(item)?'持っている':(item===2&&!v.boatPass?'きっぷと ':'')+price+'枚';buy.setAttribute('aria-label',name+' '+buy.textContent);
+      buy.textContent=own(item)?'持っている':Number.isFinite(price)?(item===2&&!v.boatPass?'きっぷと ':'')+price+'枚':'準備中';buy.setAttribute('aria-label',name+' '+buy.textContent);
       row.append(title,tip,buy);return row;
     }));
     const counts=v.speciesCounts||[],best=v.speciesBest||[],libraryKey=counts.join(',')+'|'+best.join(',')+'|'+v.cookedMask+'|'+this.catalog.length;
@@ -151,7 +175,7 @@ globalThis.FishingOutfit={
         heading.textContent=f.name+(count?'　自己ベスト '+record.toFixed(1)+' cm':'　まだ見ぬ魚');
         if(record>=f.master)heading.textContent+=' ★ヌシ級';
         const region=(v.regions||[]).find(r=>f.areas&(1<<r.id)),water=region?.id>=5?2:region?.id>=3?1:0;
-        const tryBait=this.baits[water].filter((_,i)=>f.baits&(1<<i)).join('・');
+        const tryBait=f.id===15?'大物ルアー便のジグ（ルアーセット）':this.baits[water].filter((_,i)=>f.baits&(1<<i)).join('・');
         p.textContent=(count?('最大 '+(best[f.id-1]||0).toFixed(1)+' cm　'+f.fact+' '+f.food+' '):'')+'ねらう水辺　'+locations+'。さおは「'+this.rods[f.rod].split(' · ')[0]+'」から。えさの例　'+tryBait+'。';
         const trophy=document.createElement('small');
         trophy.textContent=(count?count+'匹 · ':'')+'ヌシ級 '+(f.master||f.max)+' cm';
@@ -165,9 +189,9 @@ globalThis.FishingOutfit={
     }
   },
   renderOutings(v,$){
-    const season=['春','夏','秋','冬'],time=['朝','昼','夕方'];
+    const season=this.seasons,time=this.hours;
     const count=v.speciesCounts||[],coins=v.coins||0;
-    const price=o=>!o.item||((v.purchases||0)&o.item)?0:({1:35,2:85,16:8,32:8}[o.item]||0);
+    const price=o=>this.price(o.item,v.purchases||0);
     const open=o=>o.area===6?!!v.abroad:o.area===5?!!v.boatPass:true;
     const affordable=o=>open(o)&&coins>=price(o);
     const fresh=o=>!count[o.fish-1];
@@ -184,7 +208,8 @@ globalThis.FishingOutfit={
       line.textContent=o.place+' · '+season[o.season]+'の'+time[o.time];
       const cost=price(o);
       action.textContent=!open(o)?(o.area===6?'相模湾で1匹釣ると 出発':'魚3種・水辺2か所で 出航'):cost?o.outfit+'　'+cost+'枚で買って出発':o.outfit+'で 出発';
-      if(open(o)&&cost>coins)action.textContent+='（あと'+(cost-coins)+'枚）';
+      if(open(o)&&!Number.isFinite(cost))action.textContent='道具を確認中';
+      else if(open(o)&&cost>coins)action.textContent+='（あと'+(cost-coins)+'枚）';
       button.disabled=!v.canTravel||v.readOnly||!affordable(o);
       const portrait=document.createElement('i');portrait.className='outing-fish';portrait.setAttribute('aria-hidden','true');
       portrait.setAttribute('style','background-position:0 -'+((o.fish-1)*35)+'px');
@@ -197,7 +222,7 @@ globalThis.FishingOutfit={
     const spots=[];
     for(let i=0;i<this.spotNames.length;i++)if(v.foundMask&(1<<i)){
       const b=document.createElement('button');b.type='button';b.dataset.spot=String(i);b.disabled=!v.canTravel||v.readOnly;
-      b.textContent=(v.regions?.[Math.floor(i/3)]?.name||'')+' · '+this.spotNames[i];spots.push(b);
+      b.textContent=(v.regions?.[Math.floor(i/3)]?.name||'')+' · '+this.spotNames[i]+((v.observationMask||0)&(1<<i)?' · タナを覚えた':'');spots.push(b);
     }
     $('spot-book').hidden=!spots.length;$('visited-spots').replaceChildren(...spots);
   }

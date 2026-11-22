@@ -118,7 +118,7 @@ globalThis.FishingControls = {
     if(ui.help)on(ui.help,'click',()=>{if(!locked()&&state.phase==='Preparing')send('DepthHelp');});
     if(ui.castDepth)on(ui.castDepth,'change',()=>{
       const depth=ui.castDepth.value;
-      if(!locked()&&state.phase==='Aim'&&(state.fieldNotes&1)&&['2','4','6'].includes(depth))
+      if(!locked()&&state.phase==='Aim'&&['2','4','6'].includes(depth))
         send('SelectDepth',depth);
     });
     if(ui.returnHome)on(ui.returnHome,'click',()=>{if(!locked()&&state.phase==='AfterCatch'&&state.canFinish)send('FinishTrip');});
@@ -135,7 +135,7 @@ globalThis.FishingControls = {
       menu=false;ui.drawer.hidden=true;ui.menu.setAttribute('aria-expanded','false');send('CloseMenu');sync();
     }
     if(ui.outings)on(ui.outings,'click',event=>bookAction(event,'data-outing','outing'));
-    if(ui.spots)on(ui.spots,'click',event=>bookAction(event,'data-spot','spot'));
+    for(const list of [ui.spots,ui.shoreKey])if(list)on(list,'click',event=>bookAction(event,'data-spot','spot'));
     if(ui.outfit)on(ui.outfit,'click',()=>{if(locked()||state.phase!=='Preparing')return;release();menu=true;ui.drawer.hidden=false;page(3);ui.menu.setAttribute('aria-expanded','true');send('OpenMenu');sync();});
     for(const decision of ['keep','release','sell'])if(ui[decision])on(ui[decision],'click',()=>{if(!locked()&&state.catchReady)send('Decide',decision);});
     for(const [i,tab] of (ui.tabs||[]).entries())on(tab,'click',()=>{if(!menu||background)return;page(i);});
@@ -150,11 +150,12 @@ globalThis.FishingControls = {
     for(const [i,button] of (ui.fishPartButtons||[]).entries())on(button,'click',()=>{if(menu&&!background)FishingNotebookUI.showFishPart(i,ui);});
     if(ui.memories)on(ui.memories,'change',()=>{if(menu&&!background&&!state?.catchReady)send('ReadCatch',ui.memories.value);});
     function movement(x,y){if(!Number.isFinite(x)||!Number.isFinite(y))return;const n=Math.hypot(x,y);if(n<.01)x=y=0;else if(n>1){x/=n;y/=n;}const value=x.toFixed(3)+','+y.toFixed(3);if(value!==lastMove){lastMove=value;send('MoveInput',value);}}
-    // Freeze the projected boy position for this press: camera easing must not steer a stationary finger.
+    // The first touch is neutral anywhere on the play surface; its screen axes
+    // stay fixed even when the camera follows the walking character.
     function moveAt(event){
       if(!moveOrigin||!Number.isFinite(event.clientX)||!Number.isFinite(event.clientY))return;
       let x=event.clientX-moveOrigin.x,y=moveOrigin.y-event.clientY;
-      const speed=Math.min(1,Math.max(0,(Math.hypot(x,y)-20)/55));
+      const speed=Math.min(1,Math.max(0,(Math.hypot(x,y)-6)/38));
       const basis=moveOrigin.axes;
       if(basis&&basis.x*basis.w-basis.y*basis.z>.00001){
         // Aim along the painted path on the tilted ground, including at the
@@ -168,7 +169,17 @@ globalThis.FishingControls = {
     }
     {
       for(const target of [ui.canvas]){
-        on(target,'pointerdown',event=>{if(!started||locked()||state?.phase!=='Explore'||active!==null||movePointer!==null||moveKeys.size>0||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0)||!Number.isFinite(event.clientX)||!Number.isFinite(event.clientY))return;const r=target.getBoundingClientRect();if(r.width<=0||r.height<=0)return;event.preventDefault();movePointer=event.pointerId;moveTarget=target;const x=Number.isFinite(state.walkX)?Math.max(0,Math.min(1,state.walkX)):.46,y=Number.isFinite(state.walkY)?Math.max(0,Math.min(1,state.walkY)):.62;moveOrigin={x:r.left+r.width*x,y:r.top+r.height*y,width:r.width,height:r.height,axes:state.walkAxes};target.setPointerCapture?.(movePointer);moveAt(event);});
+        on(target,'pointerdown',event=>{
+          if(!started||locked()||state?.phase!=='Explore'||active!==null||movePointer!==null||moveKeys.size>0||event.isPrimary===false||
+             (event.pointerType==='mouse'&&event.button!==0)||!Number.isFinite(event.clientX)||!Number.isFinite(event.clientY))return;
+          const rect=target.getBoundingClientRect();
+          if(rect.width<=0||rect.height<=0)return;
+          event.preventDefault();
+          movePointer=event.pointerId;moveTarget=target;
+          moveOrigin={x:event.clientX,y:event.clientY,width:rect.width,height:rect.height,axes:state.walkAxes};
+          target.setPointerCapture?.(movePointer);
+          moveAt(event);
+        });
         on(target,'pointermove',event=>{if(target!==moveTarget||event.pointerId!==movePointer||locked())return;event.preventDefault();moveAt(event);});
         for(const name of ['pointerup','pointercancel','lostpointercapture'])on(target,name,event=>{if(target===moveTarget&&event.pointerId===movePointer)stopMove();});
       }
