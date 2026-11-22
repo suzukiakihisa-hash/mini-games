@@ -57,8 +57,8 @@ globalThis.FishingControls = {
     const recentSchool=[];
     function rememberSchool(value){
       if(value.phase!=='Aim'||value.paused){recentSchool.length=0;return;}
-      if(ui.castTarget?.hidden!==false||!Number.isFinite(value.castTargetX)||!Number.isFinite(value.castTargetY))return;
-      recentSchool.push({x:value.castTargetX,y:value.castTargetY,at:Date.now()});
+      if(!Number.isFinite(value.castTargetX)||!Number.isFinite(value.castTargetY))return;
+      recentSchool.push({x:value.castTargetX,y:value.castTargetY,fish:value.swimmers||[],mark:ui.castTarget?.hidden===false,at:Date.now()});
       if(recentSchool.length>6)recentSchool.shift();
     }
     function tappedSchoolMark(event){
@@ -67,7 +67,12 @@ globalThis.FishingControls = {
       const half=Math.max(84,Math.min(116,r.width*.25))*.5;
       return recentSchool.some(p=>{
         const x=event.clientX-r.left-p.x*r.width,y=event.clientY-r.top-p.y*r.height;
-        return now-p.at<=420&&Math.abs(x)<=half+10&&y>=-58&&y<=30;
+        if(now-p.at>500)return false;
+        for(let i=0;i<p.fish.length;i+=2){
+          const dx=event.clientX-r.left-p.fish[i]*r.width,dy=event.clientY-r.top-p.fish[i+1]*r.height;
+          if(dx*dx+dy*dy<=28*28)return true;
+        }
+        return p.mark&&Math.abs(x)<=half+10&&y>=-58&&y<=30;
       });
     }
     function clearCastTap(){castTap=null;}
@@ -77,7 +82,7 @@ globalThis.FishingControls = {
             (event.pointerType==='mouse'&&event.button!==0))return;
         castTap={surface:target,id:event.pointerId,x:event.clientX,y:event.clientY,school:onSchool||tappedSchoolMark(event)};
         // Keep ownership of a tap while the projected shoal moves underneath the finger.
-        if(onSchool)target.setPointerCapture?.(event.pointerId);
+        target.setPointerCapture?.(event.pointerId);
       });
       on(target,'pointermove',event=>{
         if(castTap?.id===event.pointerId&&Math.hypot(event.clientX-castTap.x,event.clientY-castTap.y)>14)clearCastTap();
@@ -119,6 +124,18 @@ globalThis.FishingControls = {
     if(ui.returnHome)on(ui.returnHome,'click',()=>{if(!locked()&&state.phase==='AfterCatch'&&state.canFinish)send('FinishTrip');});
     if(ui.finish)on(ui.finish,'click',()=>{if(background||!state?.canFinish)return;if(menu){release();menu=false;ui.drawer.hidden=true;ui.menu.setAttribute('aria-expanded','false');send('CloseMenu');send('FinishTrip');sync();}else if(!locked())send('FinishTrip');});
     for(const [index,button] of (ui.depths||[]).entries())on(button,'click',()=>{if(!locked()&&state.phase==='Preparing')send('SelectDepth',String(2+index*2));});
+    if(ui.nextQuest)on(ui.nextQuest,'click',()=>{
+      if(locked()||state.phase!=='AfterCatch')return;
+      release();menu=true;ui.drawer.hidden=false;page(3);ui.menu.setAttribute('aria-expanded','true');send('OpenMenu');sync();
+    });
+    function bookAction(event, attribute, command){
+      const button=event.target.closest('button['+attribute+']');
+      if(!button||button.disabled||!menu||background||!state.canTravel||state.readOnly)return;
+      release();send('Gear',command+':'+button.getAttribute(attribute));
+      menu=false;ui.drawer.hidden=true;ui.menu.setAttribute('aria-expanded','false');send('CloseMenu');sync();
+    }
+    if(ui.outings)on(ui.outings,'click',event=>bookAction(event,'data-outing','outing'));
+    if(ui.spots)on(ui.spots,'click',event=>bookAction(event,'data-spot','spot'));
     if(ui.outfit)on(ui.outfit,'click',()=>{if(locked()||state.phase!=='Preparing')return;release();menu=true;ui.drawer.hidden=false;page(3);ui.menu.setAttribute('aria-expanded','true');send('OpenMenu');sync();});
     for(const decision of ['keep','release','sell'])if(ui[decision])on(ui[decision],'click',()=>{if(!locked()&&state.catchReady)send('Decide',decision);});
     for(const [i,tab] of (ui.tabs||[]).entries())on(tab,'click',()=>{if(!menu||background)return;page(i);});
@@ -137,7 +154,7 @@ globalThis.FishingControls = {
     function moveAt(event){
       if(!moveOrigin||!Number.isFinite(event.clientX)||!Number.isFinite(event.clientY))return;
       let x=event.clientX-moveOrigin.x,y=moveOrigin.y-event.clientY;
-      const speed=Math.min(1,Math.max(0,(Math.hypot(x,y)-22)/68));
+      const speed=Math.min(1,Math.max(0,(Math.hypot(x,y)-20)/55));
       const basis=moveOrigin.axes;
       if(basis&&basis.x*basis.w-basis.y*basis.z>.00001){
         // Aim along the painted path on the tilted ground, including at the

@@ -23,6 +23,7 @@ const FishingGuideVoice=(()=>{
       case 'Measuring':return 'landed';
       case 'Catch':return value.catchReady&&(value.firstSpecies??value.landed===0)&&(!value.species||value.species==='マアジ')?'fish-maaji':'landed';
       case 'AfterCatch':
+        if(value.lastDecision)return '';
         if(value.latestFieldNote===1)return 'note-depth';
         if(value.latestFieldNote===2)return 'note-bite';
         if(value.latestFieldNote===4)return 'note-run';
