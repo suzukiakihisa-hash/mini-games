@@ -119,7 +119,8 @@ globalThis.FishingControls = {
     if(ui.returnHome)on(ui.returnHome,'click',()=>{if(!locked()&&state.phase==='AfterCatch'&&state.canFinish)send('FinishTrip');});
     if(ui.finish)on(ui.finish,'click',()=>{if(background||!state?.canFinish)return;if(menu){release();menu=false;ui.drawer.hidden=true;ui.menu.setAttribute('aria-expanded','false');send('CloseMenu');send('FinishTrip');sync();}else if(!locked())send('FinishTrip');});
     for(const [index,button] of (ui.depths||[]).entries())on(button,'click',()=>{if(!locked()&&state.phase==='Preparing')send('SelectDepth',String(2+index*2));});
-    for(const decision of ['keep','release'])on(ui[decision],'click',()=>{if(!locked()&&state.catchReady)send('Decide',decision);});
+    if(ui.outfit)on(ui.outfit,'click',()=>{if(locked()||state.phase!=='Preparing')return;release();menu=true;ui.drawer.hidden=false;page(3);ui.menu.setAttribute('aria-expanded','true');send('OpenMenu');sync();});
+    for(const decision of ['keep','release','sell'])if(ui[decision])on(ui[decision],'click',()=>{if(!locked()&&state.catchReady)send('Decide',decision);});
     for(const [i,tab] of (ui.tabs||[]).entries())on(tab,'click',()=>{if(!menu||background)return;page(i);});
     for(const [i,button] of (ui.lessonButtons||[]).entries())on(button,'click',()=>{if(menu&&!background)send('ReadLesson',String(i));});
     function travel(index){

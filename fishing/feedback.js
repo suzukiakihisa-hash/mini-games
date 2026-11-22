@@ -13,13 +13,20 @@ globalThis.FishingFeedback={
       const direction=state.runDirection<0?'← ':state.runDirection>0?'→ ':'';
       const danger=state.lineDanger??(state.tension>.85);
       action=danger||state.pulling?(state.held?'ease':'rest'):'reel';
-      button=action==='ease'?'はなそう':action==='rest'?'そのまま まつ':state.held?'そのまま まく':'おして まく';
+      button=action==='ease'?'はなそう':action==='rest'?'そのまま まつ':state.held?'そのまま まく':'長おしで まく';
       if(danger){kind='danger';text='糸がぴん！';}
       else if(state.pulling){kind=state.held?'run':'eased';text=direction+'魚が 走ってる';}
       else if(age<.55){kind='hook';text=knowsBite?'アタリを 読めたね！':'かかった！';}
-      else if(state.reelOpening){kind='opening';text='魚が こちらを向いた！';if(!state.held)button='いま まこう';}
+      else if(state.reelOpening){kind='opening';text='魚が こちらを向いた！';if(!state.held)button='長おしで まく';}
       else if(state.warning){kind='warning';text=direction+'走りそう';}
       else kind='calm';
+      if(state.guided){
+        const easing=state.lessonStep===2;
+        kind=easing?(state.held?'run':'eased'):'opening';
+        text=easing?'魚が走った！ 指をはなそう':state.lessonStep===3?'こちらを向いた！ もう一度長おし':'かかった！ ボタンを押しつづけよう';
+        action=easing?(state.held?'ease':'rest'):'reel';
+        button=easing?(state.held?'いま はなす':'そのまま まつ'):state.held?'そのまま！':'長おしで巻く';
+      }
     }
     else if(state.phase==='Landing')return {kind:'landing',text:'',action:'wait',button:'',visible:false};
     else if(state.phase==='Catch'&&age<.9){kind='caught';text='つれた！';action='decide';}
