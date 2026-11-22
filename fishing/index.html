@@ -138,7 +138,14 @@ window.FishingTelemetry=value=>{
  if(value.phase==='AfterCatch' && value.lastDecision){
    if(value.lastDecision==='keep'){setText($('journey-title'),value.meal+'が できた！');setText($('journey-message'),'おうちの料理帳に のせたよ。');}
    if(value.lastDecision==='release'){setText($('journey-title'),'魚が なかまの所へ！');setText($('journey-message'),'つぎの一投は 群れの深さにぴったり。');}
-   if(value.lastDecision==='sell'){setText($('journey-title'),'魚を売ったよ');setText($('journey-message'),value.boatPass?'船のきっぷで 相模湾へ行けるよ。':'次は、どの魚をねらおう？');}
+   if(value.lastDecision==='sell'){
+     let next='次は、どの魚をねらおう？';
+     if(value.boatPass)next='船のきっぷで 相模湾へ行けるよ。';
+     if(value.abroad)next='ハワイ・コナの船にも のれるよ。つぎは どの魚？';
+     if(value.abroad&&(value.purchases&2))next='船竿とイワシで キハダをねらおう。';
+     if(value.speciesCounts?.[14]>0)next='手帳で キハダの自己ベストを見よう！';
+     setText($('journey-title'),'魚を売ったよ');setText($('journey-message'),next);
+   }
    $('field-note-picture').hidden=true;
  }
  const measured=value.measuredLength??value.length;
