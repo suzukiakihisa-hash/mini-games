@@ -11,6 +11,20 @@ globalThis.FishingControls = {
       if(age>=0&&age<60)send('ReelInputDelay',String(age));
     }
     const locked=()=>background||menu||!state||state.paused;
+    let depthTimer=null,depthChecked=false;
+    function clearDepthTimer(){
+      if(depthTimer!==null)window.clearTimeout(depthTimer);
+      depthTimer=null;depthChecked=false;
+    }
+    function observeDepth(){
+      const waiting=()=>!locked()&&!document.hidden&&(state.phase==='Casting'||state.phase==='Waiting');
+      if(!waiting()){clearDepthTimer();return;}
+      if(depthTimer!==null||depthChecked||!window.setTimeout)return;
+      depthTimer=window.setTimeout(()=>{
+        depthTimer=null;
+        if(waiting()){depthChecked=true;send('CheckBaitDepth');}
+      },5200);
+    }
     function rod(value){if(!Number.isFinite(value))return;value=Math.max(-1,Math.min(1,value));if(Math.abs(value-lastRod)<.02)return;lastRod=value;ui.primary.style?.setProperty('--rod',String(value));send('RodInput',String(value));}
     function stopMove(){if(movePointer===null&&moveKeys.size===0)return;const id=movePointer,target=moveTarget;movePointer=null;moveTarget=moveOrigin=null;moveKeys.clear();if(typeof id==='number'&&target?.hasPointerCapture?.(id))target.releasePointerCapture(id);lastMove='';send('MoveInput','0,0');}
     let pressTarget=null;
@@ -188,11 +202,11 @@ globalThis.FishingControls = {
       on(window,'keydown',event=>{if(locked()||state?.phase!=='Explore'||movePointer!==null||event.altKey||event.ctrlKey||event.metaKey||event.target?.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(event.target?.tagName)||!directionKeys.includes(event.code))return;event.preventDefault();if(moveKeys.has(event.code))return;moveKeys.add(event.code);keys();});
       on(window,'keyup',event=>{if(!moveKeys.delete(event.code))return;if(moveKeys.size)keys();else movement(0,0);});
     }
-    const suspend=()=>{release();background=true;send('Suspend');sync();};
+    const suspend=()=>{clearDepthTimer();release();background=true;send('Suspend');sync();};
     const resume=()=>{if(document.hidden)return;background=false;send('Resume');sync();};
     on(document,'visibilitychange',()=>document.hidden?suspend():resume());
     on(window,'blur',suspend);on(window,'pagehide',suspend);on(window,'focus',resume);on(window,'pageshow',resume);
     on(window,'resize',release);on(window,'orientationchange',release);
-    return {release,update(value){state=value;rememberSchool(value);if(state.phase!=='Aim'||state.paused)clearCastTap();if(state.phase!=='Intro')started=true;if(state.phase!=='Explore'||state.paused)stopMove();if(state.phase!=='Reeling'&&active!==null)release();sync();},dispose(){release();listeners.forEach(fn=>fn());}};
+    return {release,update(value){state=value;observeDepth();rememberSchool(value);if(state.phase!=='Aim'||state.paused)clearCastTap();if(state.phase!=='Intro')started=true;if(state.phase!=='Explore'||state.paused)stopMove();if(state.phase!=='Reeling'&&active!==null)release();sync();},dispose(){clearDepthTimer();release();listeners.forEach(fn=>fn());}};
   }
 };
