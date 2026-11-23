@@ -90,3 +90,6 @@ ONNX conversion by onnx-community, Apache-2.0.
 https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX
 Voice lines, pacing and waveform edits were prepared for this project.
 Only the rendered Japanese clips are in the Web game.
+
+Waterfront music and fishing effects (0.60): Original procedural score and
+sound recordings synthesized for this game. No third-party music or samples.

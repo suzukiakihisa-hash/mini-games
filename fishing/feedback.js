@@ -7,8 +7,8 @@ globalThis.FishingFeedback={
     const age=Number.isFinite(state.phaseAge)?state.phaseAge:99;
     let kind='',text='',action='',button='';
     const knowsBite=!!(state.fieldNotes&2);
-    if(state.phase==='Nibble'){kind='nibble';text=knowsBite?'まだ ウキの先が 見えるよ':'ちょん… まだ まとう';action='wait';}
-    else if(state.phase==='Bite'){kind='bite';text=knowsBite?'しずんだ！ これがアタリ':'しずんだ！ あわせよう';action='strike';}
+    if(state.phase==='Nibble' && !state.strikeReady){kind='nibble';text=knowsBite?'まだ ウキの先が 見えるよ':'ちょん… まだ まとう';action='wait';}
+    else if(state.phase==='Bite'||state.phase==='Nibble'){kind='bite';text=state.phase==='Nibble'?'しずむよ！ 竿をあげて':Number.isFinite(state.phaseAge)&&age>9?'まだ くわえてるよ。タップ！':knowsBite?'しずんだ！ これがアタリ':'しずんだ！ あわせよう';action='strike';}
     else if(state.phase==='Reeling'){
       const direction=state.runDirection<0?'← ':state.runDirection>0?'→ ':'';
       const danger=state.lineDanger??(state.tension>.85);

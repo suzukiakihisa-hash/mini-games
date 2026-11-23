@@ -35,7 +35,7 @@ const FishingGuideVoice=(()=>{
   function attach(win,doc,showVoice,onAudioReady=()=>{}){
     const AudioContext=win.AudioContext||win.webkitAudioContext;
     const clips=new Map();
-    let context,request,source;
+    let context,request,source,media,activated=false,nativeFallback=false;
     function load(cue){
       if(!clips.has(cue)){
         const clip=win.fetch('guide-voice/'+cue+'.wav')
@@ -49,8 +49,20 @@ const FishingGuideVoice=(()=>{
       }
       return clips.get(cue);
     }
+    function playMedia(current){
+      if(request!==current||doc.hidden||typeof win.Audio!=='function')return;
+      if(!media)media=new win.Audio();
+      media.src='guide-voice/'+current.cue+'.wav';
+      media.onended=()=>{if(request===current)showVoice('');};
+      media.play().then(()=>{if(request===current&&!media.paused)showVoice(current.cue);})
+        .catch(()=>{if(request===current)current.started=false;});
+    }
     function play(){
-      if(!request||request.started||context?.state!=='running'||doc.hidden)return;
+      if(!request||request.started||doc.hidden||!activated)return;
+      if(context?.state!=='running'){
+        if(nativeFallback){request.started=true;playMedia(request);}
+        return;
+      }
       const current=request;
       current.started=true;
       load(current.cue).then(buffer=>{
@@ -66,24 +78,27 @@ const FishingGuideVoice=(()=>{
         node.start();
         source=node;
         showVoice(current.cue);
-      }).catch(()=>{ /* Advice remains readable if the clip cannot play. */ });
+      }).catch(()=>playMedia(current));
     }
     function setCue(cue){
       if(cue===(request?.cue||''))return;
       request=cue?{cue,started:false}:null;
       if(source){source.stop();source=null;showVoice('');}
+      if(media){media.pause();media.onended=null;showVoice('');}
       play();
     }
     function unlock(){
-      if(!AudioContext||doc.hidden)return;
+      if(doc.hidden)return;
+      activated=true;
+      if(!AudioContext){nativeFallback=true;play();return;}
       try{
-        context??=new AudioContext();
-        const ready=()=>{onAudioReady(context);play();};
+        if(!context){context=new AudioContext();onAudioReady(context);}
+        const ready=()=>{nativeFallback=false;onAudioReady(context);play();};
         if(context.state==='running')ready();
-        else context.resume().then(ready).catch(()=>{});
-      }catch{ /* Audio activation may be unavailable. */ }
+        else context.resume().then(ready).catch(()=>{nativeFallback=true;play();});
+      }catch{nativeFallback=true;play();}
     }
-    for(const event of ['pointerup','click','keydown'])win.addEventListener(event,unlock,{capture:true,passive:true});
+    for(const event of ['pointerup','touchend','click','keydown'])win.addEventListener(event,unlock,{capture:true,passive:true});
     for(const event of ['blur','pagehide'])win.addEventListener(event,()=>setCue(''));
     doc.addEventListener('visibilitychange',()=>{if(doc.hidden)setCue('');});
     return {setCue};

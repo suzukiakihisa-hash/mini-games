@@ -8,6 +8,7 @@
     <path d="M15 47h42l9 13h69l11 17h58l10 13h70" fill="none" stroke="#fff8dc" stroke-width="7"/>
     <path d="M116 50V24H59m57 0h69" fill="none" stroke="#637f7d" stroke-width="7"/>
     <path d="M64 24h115M116 47V24" fill="none" stroke="#f2ead5" stroke-width="3"/>
+    <g fill="none" stroke="#607d86" stroke-width="1.7"><path d="M126 18h105m-103 3h101m-79 0V3m54 18V3m-69 15 15-13 18 13m16 0 20-13 18 13"/></g>
     <g fill="#faf3dd" stroke="#5a7574" stroke-width="1.4"><path d="M237 81v-8q5-5 12 0v8zm4-9V46l2-8 3 8v26z"/></g>
   </symbol>
   <symbol id="water-1" viewBox="0 0 300 108">
@@ -28,17 +29,21 @@
     <rect width="300" height="108" fill="#a9bb94"/><path d="M-12-10C26 48 110 2 164 43S242 104 316 93v39C220 123 190 100 144 77S24 83-12 31Z" fill="#ded7ba"/>
     <path d="M-12 0C36 50 111 6 162 45S236 105 312 94v20C222 115 186 87 149 69S27 68-12 23Z" fill="#89bdbe"/>
     <path d="M21 31q36 16 77 8m53 12 15 9m-6-10 7 11-14-1" fill="none" stroke="#eaf2df" stroke-width="2.8"/>
+    <g stroke="#3e728e" fill="none" stroke-width="2"><path d="M210 78h63m-60 0q9-21 18 0 10-22 19 0 9-21 18 0m-48-3v3m19-3v3m19-3v3"/></g>
     <path d="m234 101 19-38" stroke="#8b9080" stroke-width="6"/><path d="m237 98 13-30" stroke="#f1ebce" stroke-width="2"/>
     <g fill="#96a496"><ellipse cx="53" cy="49" rx="7" ry="2.8"/><ellipse cx="68" cy="51" rx="5" ry="2.4"/><ellipse cx="96" cy="44" rx="6" ry="2.5"/></g>
   </symbol>
   <symbol id="water-4" viewBox="0 0 300 108">
     <rect width="300" height="108" fill="#9ab394"/><path d="m7 77 27-13 30 1 28-23 18 9 20-10 20-18 6-17 12-6h15l-13 25-13 19-9 14 32-9 37-17 29-5 28-17h26v12l-32 12-22 11-24 1-34 19-28 9-19 19-1 26h-28l5-26 1-11-19-8-20 5-24 12-35-2z" fill="#89bbbd" stroke="#729c91" stroke-width="2"/>
     <path d="m119 83 40-17" stroke="#8c6150" stroke-width="6"/><path d="m119 83 40-17" stroke="#ecdaba" stroke-width="2"/>
-    <path d="m111 99 32 5" stroke="#d8cdad" stroke-width="5"/>
+    <path d="m108 97 37 4-5-7-27-4z" fill="#887f68"/><path d="m108 97 37 4" stroke="#d8cdad" stroke-width="3"/>
+    <path d="m113 93 26 3m-23-5 22 2" stroke="#b2ad97" fill="none"/>
     <g fill="none" stroke="#b3c3a0" stroke-width="2"><path d="M14 51q29-21 51-21m126 39q39-20 73-18m-70 37q32-16 64-17"/></g>
   </symbol>
   <symbol id="water-5" viewBox="0 0 300 108">
     <use href="#bay"/><path d="M0 25q77 1 124-9t95-4q42 5 81-4V0H0Z" fill="#9eaf92"/><path d="M0 26q77 1 124-9t95-4q42 5 81-4" fill="none" stroke="#e1d6b6" stroke-width="4"/>
+    <path d="m9 14 12-4 9-8 9 9 11 4z" fill="#829ba1"/><path d="m24 8 6-6 6 7-4-1-2 1-3-2z" fill="#e7eddf"/>
+    <path d="m176 29 8-3 14 2 6 4-32 1z" fill="#668874"/><path d="M188 28v-9m-2 3h4" stroke="#617e74" stroke-width="2"/>
     <path d="m98 42 6-2 9-12 1 13 5 3-19 1z" fill="#677874"/>
     <path d="M50 62q61 22 110 8t90 8" fill="none" stroke="#f2efd6" stroke-width="2.5" stroke-dasharray="5 5"/>
   </symbol>
@@ -46,6 +51,7 @@
     <use href="#bay"/><path d="m183-3-13 21 10 12-9 13 14 14-9 13 18 10-4 13 11 15h99V0Z" fill="#6b8175" stroke="#465750" stroke-width="5"/>
     <path d="m223 0-20 31 8 15-9 25 21 37h77V0Z" fill="#93a187"/>
     <g fill="none" stroke="#a9b49a" stroke-width="2"><path d="m235 3-17 29 11 20-9 24 19 27m22-100-18 30 15 17-7 24 23 33"/></g>
+    <g stroke="#506d54" stroke-width="2" fill="none"><path d="M211 71q4-13 1-25m0 0q-8-5-11 3m11-3q7-6 13 1m-13-1q9 0 10 6m-10-6q-5 2-7 8"/></g>
     <path d="M151 12q-45 29-27 67l13 20m-14-27 3 14 7-12" fill="none" stroke="#edf3df" stroke-width="3"/>
   </symbol>
 </svg>

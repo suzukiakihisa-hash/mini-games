@@ -38,10 +38,12 @@ globalThis.FishingControls = {
       lastRod=0;ui.primary.style?.setProperty('--rod','0');ui.primary.classList.remove('pressed');
     }
     const resting=()=>state?.phase==='Reeling'&&FishingFeedback.describe(state).action==='rest';
-    function sync(){if(!state)return;if(resting())ui.primary.setAttribute('aria-disabled','true');else ui.primary.removeAttribute('aria-disabled');ui.primary.disabled=locked()||!!state.walking||(state.manualWalking&&state.phase==='Explore'&&!state.canPrepare)||['Casting','Waiting','Nibble','Landing','Measuring','Catch'].includes(state.phase);}
+    const sinkingFloat=()=>state?.phase==='Nibble' && !!state.strikeReady;
+    const workingWater=()=>state?.phase==='Waiting' && !!state.waterAction;
+    function sync(){if(!state)return;if(resting())ui.primary.setAttribute('aria-disabled','true');else ui.primary.removeAttribute('aria-disabled');ui.primary.disabled=locked()||!!state.walking||(state.manualWalking&&state.phase==='Explore'&&!state.canPrepare)||(!workingWater()&&!sinkingFloat()&&['Casting','Waiting','Nibble','Landing','Measuring','Catch'].includes(state.phase));}
     function bindRodSurface(target){
       on(target,'pointerdown',event=>{
-        if(target===ui.canvas&&!['Bite','Reeling'].includes(state?.phase))return;
+        if(target===ui.canvas&&!workingWater()&&!sinkingFloat()&&!['Bite','Reeling'].includes(state?.phase))return;
         if(!started||locked()||ui.primary.disabled||resting()||active!==null||movePointer!==null||moveKeys.size>0||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;
         event.preventDefault();active=event.pointerId;pressTarget=target;originX=event.clientX;lastRod=0;
         target.setPointerCapture?.(active);ui.primary.classList.add('pressed');stampReel(event);send('PrimaryDown');
