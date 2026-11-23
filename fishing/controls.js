@@ -1,7 +1,7 @@
 'use strict';
 globalThis.FishingControls = {
   attach(engine, ui, env) {
-    const {document,window}=env; let started=false,background=!!document.hidden,menu=false,active=null,state=null,originX=0,lastRod=0,movePointer=null;const moveKeys=new Set();
+    const {document,window}=env; let started=false,background=!!document.hidden,menu=false,active=null,state=null,lastRod=0,movePointer=null;const moveKeys=new Set();
     let moveTarget=null,moveOrigin=null,lastMove='';
     const listeners=[]; const on=(target,name,fn)=>{target.addEventListener(name,fn);listeners.push(()=>target.removeEventListener(name,fn));};
     const send=(method,value)=>engine.SendMessage('FishingMobileGame',method,value);
@@ -27,30 +27,73 @@ globalThis.FishingControls = {
     }
     function rod(value){if(!Number.isFinite(value))return;value=Math.max(-1,Math.min(1,value));if(Math.abs(value-lastRod)<.02)return;lastRod=value;ui.primary.style?.setProperty('--rod',String(value));send('RodInput',String(value));}
     function stopMove(){if(movePointer===null&&moveKeys.size===0)return;const id=movePointer,target=moveTarget;movePointer=null;moveTarget=moveOrigin=null;moveKeys.clear();if(typeof id==='number'&&target?.hasPointerCapture?.(id))target.releasePointerCapture(id);lastMove='';send('MoveInput','0,0');}
-    let pressTarget=null;
+    let pressTarget=null,pressSent=false,reelPoint=null,reelTimer=null,winding=false,reelAngle=35,decisionPress=null;
+    const motionPauseMs=260;
+    function stopWinding(event){
+      if(reelTimer!==null)window.clearTimeout(reelTimer);
+      reelTimer=null;
+      if(!winding)return;
+      winding=false;pressSent=false;lastRod=0;
+      ui.primary.classList.remove('winding');
+      stampReel(event);send('PrimaryUp');
+    }
+    function turnReel(degrees,event){
+      reelAngle=(reelAngle+degrees)%360;
+      ui.primary.style?.setProperty('--reel-angle',reelAngle.toFixed(1)+'deg');
+      if(reelTimer!==null)window.clearTimeout(reelTimer);
+      const now=window.performance?.now();
+      // Input can be delivered between slow Unity frames. Date the stop at the last movement.
+      reelTimer=window.setTimeout(()=>stopWinding(Number.isFinite(now)?{timeStamp:now+motionPauseMs}:null),motionPauseMs);
+      if(winding)return;
+      winding=true;ui.primary.classList.add('winding');stampReel(event);send('PrimaryDown');
+    }
+    function trackReel(event){
+      const x=event.clientX,y=event.clientY;
+      if(!Number.isFinite(x)||!Number.isFinite(y))return;
+      if(pressTarget===ui.canvas){
+        const rect=ui.canvas.getBoundingClientRect();
+        if(y<rect.top+rect.height*.36){reelPoint=null;stopWinding(event);return;}
+      }
+      if(!reelPoint){reelPoint={x,y};return;}
+      const dx=x-reelPoint.x,dy=y-reelPoint.y,travel=Math.hypot(dx,dy);
+      if(travel<4)return;
+      reelPoint.x=x;reelPoint.y=y;
+      // Arc length also works for a small hand drawing a line, an oval, or a reverse circle.
+      turnReel(Math.min(travel,65)*2.05,event);
+      // Lean the rod only for a deliberate swipe during the short directional tell.
+      if(state.warning&&Math.abs(dx)>Math.abs(dy)*1.8&&Math.abs(dx)>12)rod(dx/48);
+    }
     function release(event){
       clearCastTap();stopMove();
+      reelPoint=null;decisionPress=null;
       if(active!==null){
         const id=active,target=pressTarget;
-        active=null;pressTarget=null;stampReel(event);send('PrimaryUp');
+        active=null;pressTarget=null;
+        if(pressSent&&!winding){pressSent=false;stampReel(event);send('PrimaryUp');}
         if(typeof id==='number'&&target?.hasPointerCapture?.(id))target.releasePointerCapture(id);
       }
+      stopWinding(event);
       lastRod=0;ui.primary.style?.setProperty('--rod','0');ui.primary.classList.remove('pressed');
     }
-    const resting=()=>state?.phase==='Reeling'&&FishingFeedback.describe(state).action==='rest';
     const sinkingFloat=()=>state?.phase==='Nibble' && !!state.strikeReady;
     const workingWater=()=>state?.phase==='Waiting' && !!state.waterAction;
-    function sync(){if(!state)return;if(resting())ui.primary.setAttribute('aria-disabled','true');else ui.primary.removeAttribute('aria-disabled');ui.primary.disabled=locked()||!!state.walking||(state.manualWalking&&state.phase==='Explore'&&!state.canPrepare)||(!workingWater()&&!sinkingFloat()&&['Casting','Waiting','Nibble','Landing','Measuring','Catch'].includes(state.phase));}
+    function sync(){if(!state)return;ui.primary.disabled=locked()||!!state.walking||(state.manualWalking&&state.phase==='Explore'&&!state.canPrepare)||(!workingWater()&&!sinkingFloat()&&['Casting','Waiting','Nibble','Landing','Measuring','Catch'].includes(state.phase));}
     function bindRodSurface(target){
       on(target,'pointerdown',event=>{
         if(target===ui.canvas&&!workingWater()&&!sinkingFloat()&&!['Bite','Reeling'].includes(state?.phase))return;
-        if(!started||locked()||ui.primary.disabled||resting()||active!==null||movePointer!==null||moveKeys.size>0||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;
-        event.preventDefault();active=event.pointerId;pressTarget=target;originX=event.clientX;lastRod=0;
-        target.setPointerCapture?.(active);ui.primary.classList.add('pressed');stampReel(event);send('PrimaryDown');
+        if(!started||locked()||ui.primary.disabled||active!==null||movePointer!==null||moveKeys.size>0||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;
+        if(target===ui.canvas&&state.phase==='Reeling'){
+          const rect=target.getBoundingClientRect();if(event.clientY<rect.top+rect.height*.36)return;
+        }
+        event.preventDefault();active=event.pointerId;pressTarget=target;lastRod=0;
+        reelPoint={x:event.clientX,y:event.clientY};
+        target.setPointerCapture?.(active);
+        if(state.phase==='Reeling')return;
+        pressSent=true;ui.primary.classList.add('pressed');stampReel(event);send('PrimaryDown');
       });
       on(target,'pointermove',event=>{
         if(pressTarget!==target||event.pointerId!==active||state?.phase!=='Reeling'||locked())return;
-        event.preventDefault();rod((event.clientX-originX)/90);
+        event.preventDefault();trackReel(event);
       });
       for(const name of ['pointerup','pointercancel','lostpointercapture'])on(target,name,event=>{
         if(pressTarget===target&&event.pointerId===active)release(event);
@@ -61,13 +104,25 @@ globalThis.FishingControls = {
     on(ui.primary,'click',event=>{
       if(!state||background||menu)return;
       if(!started){started=true;send('StartGame');return;}
-      // Keyboard/assistive activation: Space key holds; a synthesized click performs one tap.
-      if(event.detail===0&&state.phase!=='Reeling'&&!ui.primary.disabled){send('PrimaryDown');send('PrimaryUp');}
+      if(event.detail===0&&!locked()&&!ui.primary.disabled){
+        if(state.phase==='Reeling')turnReel(70,event);
+        else {send('PrimaryDown');send('PrimaryUp');}
+      }
     });
-    on(ui.primary,'keydown',event=>{if(event.code==='Space'&&!event.repeat&&active===null&&started&&!locked()&&!ui.primary.disabled&&!resting()){event.preventDefault();active='keyboard';stampReel(event);send('PrimaryDown');}});
-    on(ui.primary,'keyup',event=>{if(event.code==='Space'&&active==='keyboard'){event.preventDefault();release(event);}});
-    on(ui.primary,'keydown',event=>{if(active==='keyboard'&&state?.phase==='Reeling'&&['ArrowLeft','ArrowRight'].includes(event.code)){event.preventDefault();rod(event.code==='ArrowLeft'?-1:1);}});
-    on(ui.primary,'keyup',event=>{if(active==='keyboard'&&['ArrowLeft','ArrowRight'].includes(event.code)){event.preventDefault();rod(0);}});
+    on(ui.primary,'keydown',event=>{
+      if(!started||locked()||ui.primary.disabled||!['Space','Enter'].includes(event.code))return;
+      event.preventDefault();if(event.repeat||active!==null)return;
+      active='keyboard';
+      if(state.phase==='Reeling')turnReel(70,event);
+      else {pressSent=true;stampReel(event);send('PrimaryDown');}
+    });
+    on(ui.primary,'keyup',event=>{
+      if(!['Space','Enter'].includes(event.code)||active!=='keyboard')return;
+      event.preventDefault();
+      if(winding){active=null;}else release(event);
+    });
+    on(ui.primary,'keydown',event=>{if(winding&&state?.warning&&['ArrowLeft','ArrowRight'].includes(event.code)){event.preventDefault();rod(event.code==='ArrowLeft'?-1:1);}});
+    on(ui.primary,'keyup',event=>{if(winding&&['ArrowLeft','ArrowRight'].includes(event.code)){event.preventDefault();rod(0);}});
     // Only a short, uninterrupted tap which started on the water view can cast.
     let castTap=null;
     const recentSchool=[];
@@ -153,7 +208,21 @@ globalThis.FishingControls = {
     if(ui.outings)on(ui.outings,'click',event=>bookAction(event,'data-outing','outing'));
     for(const list of [ui.spots,ui.shoreKey])if(list)on(list,'click',event=>bookAction(event,'data-spot','spot'));
     if(ui.outfit)on(ui.outfit,'click',()=>{if(locked()||state.phase!=='Preparing')return;release();menu=true;ui.drawer.hidden=false;page(3);ui.menu.setAttribute('aria-expanded','true');send('OpenMenu');sync();});
-    for(const decision of ['keep','release','sell'])if(ui[decision])on(ui[decision],'click',()=>{if(!locked()&&state.catchReady)send('Decide',decision);});
+    for(const decision of ['keep','release','sell']){
+      const button=ui[decision];if(!button)continue;
+      on(button,'pointerdown',event=>{
+        if(!locked()&&state.catchReady&&event.isPrimary!==false&&(!event.button||event.button===0))
+          decisionPress={button,id:event.pointerId};
+      });
+      on(button,'pointercancel',()=>{decisionPress=null;});
+      on(button,'click',event=>{
+        // A finger from the fight can lift over the new card. Each decision needs its own touch.
+        const assistive=!event.pointerType&&!event.detail;
+        const fresh=decisionPress?.button===button&&(!(event.pointerId>0)||event.pointerId===decisionPress.id);
+        decisionPress=null;
+        if(!locked()&&state.catchReady&&(assistive||fresh))send('Decide',decision);
+      });
+    }
     for(const [i,tab] of (ui.tabs||[]).entries())on(tab,'click',()=>{if(!menu||background)return;page(i);});
     for(const [i,button] of (ui.lessonButtons||[]).entries())on(button,'click',()=>{if(menu&&!background)send('ReadLesson',String(i));});
     function travel(index){
@@ -209,6 +278,6 @@ globalThis.FishingControls = {
     on(document,'visibilitychange',()=>document.hidden?suspend():resume());
     on(window,'blur',suspend);on(window,'pagehide',suspend);on(window,'focus',resume);on(window,'pageshow',resume);
     on(window,'resize',release);on(window,'orientationchange',release);
-    return {release,update(value){state=value;observeDepth();rememberSchool(value);if(state.phase!=='Aim'||state.paused)clearCastTap();if(state.phase!=='Intro')started=true;if(state.phase!=='Explore'||state.paused)stopMove();if(state.phase!=='Reeling'&&active!==null)release();sync();},dispose(){clearDepthTimer();release();listeners.forEach(fn=>fn());}};
+    return {release,update(value){state=value;observeDepth();rememberSchool(value);if(state.phase!=='Aim'||state.paused)clearCastTap();if(state.phase!=='Intro')started=true;if(state.phase!=='Explore'||state.paused)stopMove();if((state.phase!=='Reeling'||state.paused)&&(active!==null||winding))release();sync();},dispose(){clearDepthTimer();release();listeners.forEach(fn=>fn());}};
   }
 };

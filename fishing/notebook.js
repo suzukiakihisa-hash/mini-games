@@ -120,6 +120,31 @@ globalThis.FishingOutfit={
     return sum;
   },
   entry(id,v){if(v?.catalog?.length)this.catalog=v.catalog;return this.catalog.find(f=>f.id===id);},
+  centimetres(size){return Number.isFinite(size)&&size>0?size.toFixed(1)+' cm':'';},
+  masterCaught(size,threshold){return threshold>0&&Math.fround(size)>=Math.fround(threshold);},
+  saleAdvice(v,sold){
+    if(!sold)return 'つぎの魚を えらんでみよう。';
+    const yellowfin=15;
+    const caughtYellowfin=v.speciesCounts?.[yellowfin-1]>0;
+    if(v.region===6 && !caughtYellowfin && !(v.purchases&2)){
+      const rodPrice=this.price(2);
+      if(v.coins>=rodPrice && v.coins-(v.lastReward||0)<rodPrice)
+        return '船竿が 買えるよ！ どうぐで 見てみよう。';
+    }
+    if(v.region===6 || sold.id===yellowfin || caughtYellowfin){
+      const size=v.speciesBest?.[sold.id-1],best=this.centimetres(size),limit=sold.master||sold.max;
+      if(best){
+        if(this.masterCaught(size,limit))return 'ヌシ級の 自己ベスト '+best+'！ つぎの魚もさがそう。';
+        const target=this.centimetres(limit);
+        return '自己ベスト '+best+(target?'。ヌシ級は '+target+'！':'！');
+      }
+      return sold.habitat||'魚ずかんで この魚を見よう。';
+    }
+    if(v.abroad&&(v.purchases&2))return (v.purchases&8)?'夏・秋の朝に、船竿とジグで キハダに会おう。':'キハダ便の ジグを手に入れよう。';
+    if(v.abroad)return 'ハワイ・コナの船にも のれるよ。';
+    if(v.boatPass)return '船のきっぷで 相模湾へ行けるよ。';
+    return '売ったコインで、つぎの魚に合う 道具をえらぼう。';
+  },
   habitat(f,regions){return (regions||[]).filter(r=>f.areas&(1<<r.id)).map(r=>r.name).join('・');},
   options(select,options,selected,available){
     select.replaceChildren(...options.map((label,index)=>{
@@ -158,7 +183,7 @@ globalThis.FishingOutfit={
     $('outfit-status').textContent=v.gearMessage||'';
     $('kit-targets').textContent=v.targets?'この日の群れ　'+v.targets:'このえさに合う魚は おやすみ。えさをかえてみよう。';
     $('kit-goal').textContent=v.goal||'';
-    $('map-goal').textContent='いつかキハダマグロを釣ろう。'+(v.goal||'');
+    $('map-goal').textContent=(v.speciesCounts?.[14]>0?'':'いつかキハダマグロを釣ろう。')+(v.goal||'');
     const home=v.region||0,localFish=this.catalog.filter(f=>f.areas&(1<<home));
     $('map-fish').textContent='ここで出会った魚　'+localFish.filter(f=>this.caughtHere(f.id,home,v)).length+' / '+localFish.length+' 種';
     const goal=$('tuna-target');goal.hidden=!v.tunaReady;goal.disabled=!v.canTravel;goal.setAttribute('aria-pressed',String(!!v.tunaTarget));goal.textContent=v.tunaTarget?'キハダをねらい中 · やめる':'マグロをねらう';
@@ -199,10 +224,11 @@ globalThis.FishingOutfit={
     const ranks=['よく会う魚','水辺の魚','季節の魚','大もの','伝説の魚'];
     $('species-list').replaceChildren(...sorted.map(f=>{
       const card=document.createElement('details'),heading=document.createElement('summary'),p=document.createElement('p');
-      const count=counts[f.id-1]||0,record=best[f.id-1]||0;
+      const count=counts[f.id-1]||0,record=best[f.id-1]||0,master=f.master||f.max;
+      const recordText=this.centimetres(record),masterText=this.centimetres(master);
       card.className='species-row';card.dataset.known=String(caught(f.id));
-      heading.textContent=f.name+(caught(f.id)?'　自己ベスト '+record.toFixed(1)+' cm':count?'　ここではまだ':'　まだ見ぬ魚');
-      if(record>=f.master)heading.textContent+=' ★ヌシ級';
+      heading.textContent=f.name+(caught(f.id)&&recordText?'　自己ベスト '+recordText:count?'　ここではまだ':'　まだ見ぬ魚');
+      if(caught(f.id)&&this.masterCaught(record,master))heading.textContent+=' ★ヌシ級';
       const entryArea=area>=0?area:regions.find(r=>f.areas&(1<<r.id))?.id||0;
       const water=entryArea>=5?2:entryArea>=3?1:0;
       const bait=this.baits[water].filter((_,i)=>f.baits&(1<<i)).join('・');
@@ -210,8 +236,8 @@ globalThis.FishingOutfit={
       const locations=area<0?this.habitat(f,regions)+'。':'';
       p.textContent=locations+(f.habitat||'')+weather+'　えさは '+bait+'。'+(count?' '+f.fact+' '+f.food:'');
       const note=document.createElement('small');
-      note.textContent=[ranks[f.rarity||0],f.pull,(count?count+'匹・自己ベスト '+record.toFixed(1)+' cm':''),
-        'ヌシ級 '+(f.master||f.max)+' cm','さおは '+this.rods[f.rod].split(' · ')[0]].filter(Boolean).join(' · ');
+      note.textContent=[ranks[f.rarity||0],f.pull,count&&recordText?count+'匹・自己ベスト '+recordText:'',
+        masterText?'ヌシ級 '+masterText:'','さおは '+this.rods[f.rod].split(' · ')[0]].filter(Boolean).join(' · ');
       card.append(heading,note,p);return card;
     }));
     const meals=this.catalog.filter(f=>!!(((f.id<=32?v.cookedMask:v.cookedUpper)||0)&(1<<((f.id-1)%32)))).map(f=>{

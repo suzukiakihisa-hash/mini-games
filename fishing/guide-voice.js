@@ -9,6 +9,7 @@ const FishingGuideVoice=(()=>{
         if(hint.includes('「深いところ」'))return 'depth-deep';
         return 'depth-choice';
       case 'Aim':return 'aim';
+      case 'Reeling':return value.lineDanger&&value.held?'line-warning':'';
       case 'Miss':
         if(hint.startsWith('えさが浅すぎ'))return 'miss-shallow';
         if(hint.startsWith('えさが深すぎ'))return 'miss-deep';
@@ -36,9 +37,10 @@ const FishingGuideVoice=(()=>{
     const AudioContext=win.AudioContext||win.webkitAudioContext;
     const clips=new Map();
     let context,request,source,media,activated=false,nativeFallback=false;
+    function clipUrl(cue){return 'guide-voice/'+cue+'.wav'+(cue==='miss-slack'?'?v=061':'');}
     function load(cue){
       if(!clips.has(cue)){
-        const clip=win.fetch('guide-voice/'+cue+'.wav')
+        const clip=win.fetch(clipUrl(cue))
           .then(response=>{
             if(!response.ok)throw new Error('Guide voice unavailable');
             return response.arrayBuffer();
@@ -52,7 +54,7 @@ const FishingGuideVoice=(()=>{
     function playMedia(current){
       if(request!==current||doc.hidden||typeof win.Audio!=='function')return;
       if(!media)media=new win.Audio();
-      media.src='guide-voice/'+current.cue+'.wav';
+      media.src=clipUrl(current.cue);
       media.onended=()=>{if(request===current)showVoice('');};
       media.play().then(()=>{if(request===current&&!media.paused)showVoice(current.cue);})
         .catch(()=>{if(request===current)current.started=false;});

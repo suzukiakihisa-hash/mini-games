@@ -84,7 +84,7 @@ https://www.blender.org/releases/4-5/
 Official portable distribution; Blender is GPL software with bundled components
 under their own licences. The tool is kept locally and is not bundled in the Web game.
 
-Japanese guide voice in 0.51 and the three fishing field-note lines in 0.54: Kokoro-82M jm_kumo by hexgrad (Apache-2.0).
+Japanese guide voice, field-note lines and 0.61 reel/line warnings: Kokoro-82M jm_kumo by hexgrad (Apache-2.0).
 https://huggingface.co/hexgrad/Kokoro-82M
 ONNX conversion by onnx-community, Apache-2.0.
 https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX
