@@ -50,10 +50,8 @@ globalThis.FishingControls = {
     function trackReel(event){
       const x=event.clientX,y=event.clientY;
       if(!Number.isFinite(x)||!Number.isFinite(y))return;
-      if(pressTarget===ui.canvas){
-        const rect=ui.canvas.getBoundingClientRect();
-        if(y<rect.top+rect.height*.36){reelPoint=null;stopWinding(event);return;}
-      }
+      // After a stroke starts, keep it under the same thumb even if a large oval
+      // crosses the upper edge of the touch area. Only actual rest eases the drag.
       if(!reelPoint){reelPoint={x,y};return;}
       const dx=x-reelPoint.x,dy=y-reelPoint.y,travel=Math.hypot(dx,dy);
       if(travel<4)return;

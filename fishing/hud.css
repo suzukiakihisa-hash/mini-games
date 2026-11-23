@@ -183,6 +183,13 @@ button{font-weight:650}
 #load{background:#91a9a5;height:8px}
 #shell[data-phase=Intro] #primary,#shell[data-phase=Explore] #primary{height:64px;border-radius:22px}
 #shell[data-phase=Explore] #primary{width:144px}
+#shell[data-phase=Explore]:is([data-region="5"],[data-region="6"]) #primary[data-gesture=float]{
+ right:calc(env(safe-area-inset-right,0px) + 7px);bottom:calc(var(--bottom) + 8px);
+ width:99px;height:50px;min-height:48px;padding:3px 5px;gap:3px;border-radius:16px;font-size:14px;
+}
+#shell[data-phase=Explore]:is([data-region="5"],[data-region="6"]) #primary[data-gesture=float]::before{
+ width:20px;height:20px;flex-basis:20px
+}
 #shell[data-phase=Explore] #hint{font-size:14px;border-radius:9px;max-width:25em}
 #shell[data-phase=Preparing] #prep,#journey-result,#catch{background:#fff9eb;border-top:3px solid #438286;border-radius:16px}
 #depths [aria-pressed=true]{outline:2px solid #1b5364;outline-offset:-2px;background:#1b5364}
@@ -280,7 +287,7 @@ button{font-weight:650}
 #visited-spots{display:flex;gap:4px;flex-wrap:wrap}#visited-spots button{min-height:44px}
 #species-list summary{display:list-item;padding:9px 1px 1px;font-weight:700}
 #species-list details>small{font-size:12px;color:#735321}#species-list details:not([open])>small{display:none}
-/* The instructions stay in the upper safe area. Only the crank moves under the thumb. */
+/* The handle is a touch landmark. The hooked fish carries the changing cues. */
 #shell[data-phase=Reeling] #primary.reeling{
  position:relative;inset:auto;justify-self:end;align-self:end;width:clamp(78px,21vw,94px);height:auto;aspect-ratio:1;
  box-sizing:border-box;border:3px solid #e3f3de;border-radius:50%;padding:0;
@@ -301,12 +308,36 @@ button{font-weight:650}
  background:transparent;border:2px solid transparent;border-right-color:#c8dfd9;border-bottom-color:#c8dfd9;pointer-events:none;
 }
 #shell[data-phase=Reeling] #primary.reeling.winding{border-color:#ffdc86}
-#shell[data-phase=Reeling] #signal{font-weight:750;line-height:1.27;margin-top:3px;text-wrap:balance}
-#signal .reel-phrase{display:inline-block}
-#shell[data-phase=Reeling] #signal.danger{color:#fff8eb;background:#98391f;border:2px solid #ffe2a7}
-#shell[data-phase=Reeling] #signal.danger::before{content:'！';color:#fff3c4;font-weight:900;display:inline;margin-right:3px}
-#shell[data-phase=Reeling] #signal.run::before{color:#fff3c4}
-#shell[data-phase=Reeling] #fight{align-self:end}
+#shell[data-phase=Reeling] #heading :is(h1,#place){display:none}
+#shell[data-phase=Reeling] #fight{
+ position:absolute;width:1px;height:1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap
+}
+#fish-cue{
+ position:absolute;z-index:2;pointer-events:none;user-select:none;--edge:18px;
+ left:clamp(var(--edge),var(--fish-x,50%),calc(100% - var(--edge)));
+ top:var(--fish-top,45%);transform:translate(-50%,calc(-100% - 6px));
+ display:flex;align-items:center;gap:4px;padding:2px;border:1.5px solid #fff4d5;border-radius:50%;
+ color:#f9ffed;background:#164746;box-shadow:0 2px 4px #102e4080;
+}
+#fish-cue[data-with-tip=true]{--edge:76px;padding:3px 9px 3px 5px;border-radius:18px}
+#fish-tip{white-space:nowrap;font-size:clamp(13px,3.8vw,16px);line-height:1.22;font-weight:750}
+#fish-cue[data-beat=pause],#fish-cue[data-beat=turn]{background:#835520;color:#fff6ce}
+#fish-cue[data-beat=danger]{background:#962f22;color:#fff9db;border-radius:8px}
+#fish-cue[data-beat=slack]{background:#24626a}
+#fish-cue svg{display:block;flex:none;width:22px;height:22px}
+#fish-cue svg path{display:none}
+#fish-cue[data-direction=left] .cue-turn{transform:translateX(26px) scaleX(-1)}
+#fish-cue[data-beat=wind] .cue-wind,#fish-cue[data-beat=pause] .cue-pause,#fish-cue[data-beat=slack] .cue-slack,
+#fish-cue[data-beat=turn] .cue-turn,#fish-cue[data-beat=danger] .cue-danger{display:block}
+#shell:has(#drawer:not([hidden])) #fish-cue{visibility:hidden}
+#shell[data-phase=Reeling] #primary.reeling:not([data-demonstrate=true]){opacity:.70;box-shadow:0 1px 5px #17384750}
+#shell[data-phase=Reeling] #primary.reeling[data-demonstrate=true]::before{animation:crank-example 1.9s ease-in-out infinite}
+#shell[data-phase=Reeling] #primary.reeling[data-demonstrate=true]::after{
+ inset:-3px;border:0;background:center/100% 100% no-repeat
+ url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 84 84'%3E%3Cg fill='none' stroke='%23fff3c8' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 43a30 30 0 0 1 33-30m-4-4 5 4-5 5'/%3E%3C/g%3E%3Cpath d='m61 56-8-9c-2-3-6 0-4 3l4 6-8-10c-2-2-5 0-3 3l8 12-5-3c-3-1-5 2-3 4l9 7c3 2 6 2 8 1l7-5c2-2 2-5 1-7l-4-6c-2-3-5-1-4 1z' fill='%23fff1cf' stroke='%23446262' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+@keyframes crank-example{0%,12%{transform:rotate(35deg)}86%,100%{transform:rotate(395deg)}}
+@media(prefers-reduced-motion:reduce){#shell[data-phase=Reeling] #primary.reeling[data-demonstrate=true]::before{animation:none}}
 #shell #decisions #keep::after,#shell #decisions #release::after{display:block;font-size:10px;line-height:1.3;font-weight:500}
 #decisions #keep::after{content:"料理帳へ"}#decisions #release::after{content:"つぎのタナ発見"}
 @media(max-width:360px){#journey-result:has(#next-quest:not([hidden])){padding:6px 9px}#journey-result #journey-message{margin-bottom:1px}}

@@ -1,6 +1,22 @@
 'use strict';
 // Presentation only. No timers, input capture, storage or engine commands.
 globalThis.FishingFeedback={
+  fishCue(state,signal,hasTurned){
+    if(!state || state.phase!=='Reeling' || state.paused)return {beat:'',tip:'',demo:false};
+    const teaching=!!state.guided;
+    const danger=state.lineDanger??(state.tension>=.70);
+    if(danger && state.held)return {beat:'danger',tip:teaching?'手を とめよう':'',demo:false};
+    if(state.pulling || (teaching && state.lessonStep===2) || danger){
+      return {beat:state.held?'pause':'slack',tip:teaching?(state.held?'手を とめよう':'糸が ゆるんだ'):'',demo:false};
+    }
+    if(teaching){
+      if(state.held)return {beat:'',tip:'',demo:false};
+      return {beat:'wind',tip:state.lessonStep===3?'こっちを向いた！ くるくる':'下で くるくる',demo:!hasTurned};
+    }
+    if(signal.kind==='warning')return {beat:'turn',tip:'',demo:false};
+    if(state.reelOpening&&!state.held)return {beat:'wind',tip:'',demo:false};
+    return {beat:'',tip:'',demo:false};
+  },
   describe(state){
     const hide={kind:'',text:'',action:'',button:'',visible:false};
     if(!state||state.paused)return hide;

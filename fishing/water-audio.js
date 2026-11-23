@@ -1,12 +1,16 @@
 'use strict';
 // Pre-rendered original music and foley. The audio device advances the loops between Unity frames.
 const FishingWaterAudio=(()=>{
-  const folders='water-sounds/';
+  const url=name=>'water-sounds/'+name+'.mp3?v=062';
+  // Brief silent PCM for arming reusable media elements inside the actual input event.
+  const silence='data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQQAAAAAAAAA';
   const musicName=region=>region>=5?'offshore':region===4?'lake':region===3?'river':'harbor';
   function attach(win,doc){
     let context, state, away=false, speaking=false, primed=false, previewPending=false, previewUntil=0;
-    let fallback=false, lastPhase='', gesture=0;
+    let fallback=false, lastPhase='', output, lastEase=-Infinity;
     const clips=new Map(), slots=new Map(), nativePlayers=new Map();
+    const authorizedMedia=new WeakSet(),pendingMedia=new WeakSet();
+    const nativeGroup=key=>['music','reel','strain'].includes(key)?key:'effect';
     function permitted(){return !!state?.sound && !doc.hidden && !away;}
     function stop(key){
       const slot=slots.get(key); if(!slot)return;
@@ -18,7 +22,7 @@ const FishingWaterAudio=(()=>{
     function allStop(){for(const key of [...slots.keys()])stop(key);}
     function clip(name){
       if(!clips.has(name)){
-        const promise=win.fetch(folders+name+'.mp3').then(response=>{
+        const promise=win.fetch(url(name)).then(response=>{
           if(!response.ok)throw Error('Unavailable sound');
           return response.arrayBuffer();
         }).then(bytes=>context.decodeAudioData(bytes)).catch(error=>{clips.delete(name);throw error;});
@@ -27,8 +31,9 @@ const FishingWaterAudio=(()=>{
       return clips.get(name);
     }
     function volume(key){
-      if(key==='music')return speaking ? .32 : state?.phase==='Reeling' ? .48 : .76;
-      return key==='reel' ? .85 : key==='net' ? (speaking ? .26 : .96) : .92;
+      if(key==='music')return speaking ? .50 : state?.phase==='Reeling' ? .54 : .98;
+      if(key==='net')return speaking ? .56 : .98;
+      return key==='strain' ? .84 : key==='reel' ? .96 : .94;
     }
     function setLevel(key,slot){
       const value=volume(key);
@@ -47,14 +52,16 @@ const FishingWaterAudio=(()=>{
     }
     function native(key,slot){
       if(slots.get(key)!==slot||typeof win.Audio!=='function')return;
-      let media=nativePlayers.get(key);
-      if(!media){media=new win.Audio();nativePlayers.set(key,media);}
-      const file=folders+slot.name+'.mp3';
+      const group=nativeGroup(key);
+      const media=nativePlayers.get(group)||new win.Audio();
+      nativePlayers.set(group,media);
+      for(const [other,playing] of slots)if(other!==key&&playing.media===media)stop(other);
+      const file=url(slot.name);
       if(media.getAttribute('src')!==file)media.src=file;
       else try{media.currentTime=0;}catch{}
-      slot.media=media;media.preload='auto';media.loop=slot.loop;setLevel(key,slot);
+      slot.media=media;slot.lastVolume=null;media.preload='auto';media.loop=slot.loop;setLevel(key,slot);
       if(key==='reel')media.playbackRate=state?.pulling ? .82 : 1;
-      media.onended=()=>{if(slots.get(key)===slot)stop(key);};
+      media.onended=()=>{if(!slot.loop&&media.ended&&slots.get(key)===slot)stop(key);};
       playMedia(key,slot);
     }
     function start(key,name,loop=false){
@@ -72,7 +79,7 @@ const FishingWaterAudio=(()=>{
         slot.node=node;slot.level=level;node.buffer=buffer;node.loop=loop;
         level.gain.value=volume(key);
         if(key==='reel')node.playbackRate.value=state?.pulling ? .82 : 1;
-        node.connect(level);level.connect(context.destination);
+        node.connect(level);level.connect(output||context.destination);
         node.onended=()=>{if(slots.get(key)===slot)stop(key);};
         node.start();
       }).catch(()=>native(key,slot));
@@ -92,45 +99,85 @@ const FishingWaterAudio=(()=>{
         if(reel?.node)reel.node.playbackRate.value=speed;
         if(reel?.media)reel.media.playbackRate=speed;
       }else stop('reel');
+      if(state.phase==='Reeling'&&state.held&&(state.lineDanger||state.tension>=.74||state.pulling&&state.tension>=.56))
+        start('strain','strain',true);
+      else stop('strain');
     }
     function warm(){
-      if(!context||!primed||fallback||!state?.sound)return;
+      if(!primed||!state?.sound)return;
       const names=state.phase==='Intro'||state.phase==='Explore'?[musicName(state.region||0),'splash']:
-        ['Preparing','Aim','Casting'].includes(state.phase)?['bite','strike','reel','landed']:[];
+        ['Preparing','Aim','Casting'].includes(state.phase)?['splash','bite','strike','reel','ease','strain','landed']:[];
+      if(!context||fallback){
+        for(const key of ['reel','strain']){
+          const media=nativePlayers.get(key);
+          if(names.includes(key)&&media&&!slots.has(key)&&media.getAttribute('src')!==url(key)){
+            media.src=url(key);media.preload='auto';media.load?.();
+          }
+        }
+        return;
+      }
       for(const name of names)if(!clips.has(name))clip(name).catch(()=>{});
     }
-    function wake(unlocked){
-      if(unlocked&&!context){context=unlocked;context.addEventListener?.('statechange',()=>{
-        if(context.state==='running'){fallback=false;sync();}
-      });}
-      if(!primed||!context||context.state!=='running')return;
+    function ready(){
+      if(context?.state!=='running')return;
+      if(fallback)for(const [key,slot] of [...slots])if(slot.loop&&slot.media)stop(key);
       fallback=false;warm();sync();
     }
-    function activate(event){
-      if(!state || !state.sound || doc.hidden)return;
-      // A pointer release, tap or key is an actual play gesture. Browser interruptions can require another.
-      primed=true;
-      const sequence=++gesture;
-      for(const [key,slot] of slots)if(slot.blocked&&slot.loop)playMedia(key,slot);
-      if(context?.state==='running')wake(context);
-      else if(!win.AudioContext && !win.webkitAudioContext){
-        fallback=true;
-        if(state?.phase==='Intro'&&event.target?.closest?.('#primary'))start('music',musicName(state.region||0),true);
-        else sync();
+    function primeMedia(){
+      if(typeof win.Audio!=='function')return;
+      for(const group of ['music','reel','strain','effect']){
+        const media=nativePlayers.get(group)||new win.Audio();
+        nativePlayers.set(group,media);
+        if(authorizedMedia.has(media)||pendingMedia.has(media))continue;
+        const inUse=[...slots.values()].some(slot=>slot.media===media);
+        if(!inUse){media.preload='auto';media.src=silence;}
+        // Changing src on the same authorized element also works when Web Audio is interrupted.
+        try{
+          pendingMedia.add(media);
+          media.play().then(()=>authorizedMedia.add(media),()=>{}).finally(()=>pendingMedia.delete(media));
+        }catch{pendingMedia.delete(media);}
       }
-      else win.setTimeout(()=>{
-        if(sequence!==gesture||context?.state==='running')return;
-        fallback=true;
-        for(const [key,slot] of slots)if(slot.loop&&slot.node)stop(key);
-        sync();
-      },400);
+    }
+    function useMedia(){
+      if(context?.state==='running'){ready();return;}
+      fallback=true;
+      for(const [key,slot] of [...slots])if(slot.node)stop(key);
+      sync();
+    }
+    function activate(event){
+      const enabling=event.target?.closest?.('#sound') && state?.sound===false;
+      if(doc.hidden||(state?.sound===false&&!enabling)||event.isTrusted===false)return;
+      primed=true;
+      const Audio=win.AudioContext||win.webkitAudioContext;
+      if(!context&&Audio)try{
+        context=new Audio({latencyHint:'interactive'});
+        if(context.createDynamicsCompressor){
+          output=context.createDynamicsCompressor();output.threshold.value=-7;output.knee.value=5;
+          output.ratio.value=5;output.attack.value=.004;output.release.value=.16;
+          output.connect(context.destination);
+        }
+        context.addEventListener?.('statechange',()=>{
+          if(context.state==='running')ready();
+          else if(primed&&permitted())useMedia();
+        });
+      }catch{}
+      if(context?.state==='running')ready();
+      else{
+        primeMedia();
+        if(context)try{
+          // Call resume synchronously in this gesture, before fetching or waiting on a promise.
+          context.resume().then(ready,useMedia);
+        }catch{useMedia();}
+        useMedia();
+      }
+      for(const [key,slot] of slots)if(slot.blocked&&slot.loop)playMedia(key,slot);
     }
     function speak(on){
       speaking=!!on;
       for(const key of ['music','net']){const slot=slots.get(key);if(slot)setLevel(key,slot);}
     }
     function update(value){
-      const previous=lastPhase, changed=previous!==value.phase;
+      const previous=lastPhase, changed=previous!==value.phase, wasWinding=state?.held && !state.paused && state.sound;
       state=value;lastPhase=value.phase;
       if(!permitted()){allStop();return;}
       sync();
@@ -138,9 +185,13 @@ const FishingWaterAudio=(()=>{
         previewPending=false;start('preview','bite');
       }else if(!value.paused)previewPending=false;
       if(value.paused||!primed)return;
+      const now=Date.now();
+      if(previous==='Reeling'&&value.phase==='Reeling'&&wasWinding&&!value.held&&now-lastEase>230){
+        lastEase=now;start('ease','ease');
+      }
       if(changed){
         warm();
-        if(value.phase==='Waiting'&&previous==='Casting')start('impact','splash');
+        if(previous==='Casting'&&['Waiting','Nibble','Bite'].includes(value.phase))start('impact','splash');
         if(value.phase==='Bite')start('bite','bite');
         if(value.phase==='Reeling')start('strike','strike');
         if(value.phase==='Landing')start('net','landed');
@@ -151,12 +202,18 @@ const FishingWaterAudio=(()=>{
       if(state && !state.sound){previewPending=true;previewUntil=Date.now()+1200;}
     }
     function leave(){away=true;previewPending=false;allStop();}
-    function back(){away=false;if(context?.state==='running'||fallback)sync();}
+    function back(){
+      away=false;
+      if(!primed||!permitted())return;
+      if(context?.state==='running')ready();
+      else if(context)context.resume().then(ready,useMedia);
+      else sync();
+    }
     for(const event of ['pointerup','touchend','click','keydown'])win.addEventListener(event,activate,{capture:true,passive:true});
     win.addEventListener('blur',leave);win.addEventListener('pagehide',leave);
     win.addEventListener('focus',back);win.addEventListener('pageshow',back);
     doc.addEventListener('visibilitychange',()=>doc.hidden?leave():back());
-    return {wake,speak,update,preview};
+    return {audioContext:()=>context,speak,update,preview};
   }
   return {attach};
 })();

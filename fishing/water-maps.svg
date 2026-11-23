@@ -16,6 +16,7 @@
     <path d="m0 42 57 13 69 12 66 3 65-4 43-10" fill="none" stroke="#dfdabc" stroke-width="10"/>
     <path d="m0 42 57 13 69 12 66 3 65-4 43-10" fill="none" stroke="#fff6d6" stroke-width="2"/>
     <path d="m178 28 13-7 14 1 6-8 15 1 12 8 11 2-7 5-19 1-13 5-15-4z" fill="#688c72" stroke="#5e8380" stroke-width="1.5"/>
+    <g fill="#526976" stroke="#485e68" stroke-linejoin="round"><path d="M48 30h14l3-4h17l2 4h17l-9 5H56z"/><path d="M67 26v-5h11v5m-5-5v-7" fill="none" stroke-width="2.4"/></g>
     <path d="M40 91q37-16 63 2m106 6q34-12 66-13" fill="none" stroke="#d3ddab" stroke-width="5"/>
   </symbol>
   <symbol id="water-2" viewBox="0 0 300 108">
@@ -52,6 +53,9 @@
     <path d="m223 0-20 31 8 15-9 25 21 37h77V0Z" fill="#93a187"/>
     <g fill="none" stroke="#a9b49a" stroke-width="2"><path d="m235 3-17 29 11 20-9 24 19 27m22-100-18 30 15 17-7 24 23 33"/></g>
     <g stroke="#506d54" stroke-width="2" fill="none"><path d="M211 71q4-13 1-25m0 0q-8-5-11 3m11-3q7-6 13 1m-13-1q9 0 10 6m-10-6q-5 2-7 8"/></g>
+    <g fill="#e3c495" stroke="#796655" stroke-width="1.6"><path d="m188 13 5-4 5 4v6h-10zm12 4 5-4 5 4v6h-10z"/><path d="M184 19h-19m1-3v7" fill="none" stroke-width="3"/></g>
+    <path d="m224 31-17 9-4 8-23 6 9 5 18-8 8-11z" fill="#4e554c"/>
+    <path d="m190 85-14-4-6 1m14 14-8-7-5-1" fill="none" stroke="#52655d" stroke-width="3"/>
     <path d="M151 12q-45 29-27 67l13 20m-14-27 3 14 7-12" fill="none" stroke="#edf3df" stroke-width="3"/>
   </symbol>
 </svg>

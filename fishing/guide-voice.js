@@ -20,7 +20,7 @@ const FishingGuideVoice=(()=>{
         if(hint.startsWith('糸が緩み続けた'))return 'miss-slack';
         return '';
       // The little cheer starts as the fish is secured and can finish over the measurement.
-      case 'Landing':return value.phaseAge>=.75?'landed':'';
+      case 'Landing':return value.phaseAge>=1.13?'landed':'';
       case 'Measuring':return 'landed';
       case 'Catch':return value.catchReady&&(value.firstSpecies??value.landed===0)&&(!value.species||value.species==='マアジ')?'fish-maaji':'landed';
       case 'AfterCatch':
@@ -33,10 +33,10 @@ const FishingGuideVoice=(()=>{
     }
   }
 
-  function attach(win,doc,showVoice,onAudioReady=()=>{}){
+  function attach(win,doc,showVoice,getGameContext){
     const AudioContext=win.AudioContext||win.webkitAudioContext;
     const clips=new Map();
-    let context,request,source,media,activated=false,nativeFallback=false;
+    let context,request,source,media,voiceLevel,activated=false,nativeFallback=false;
     function clipUrl(cue){return 'guide-voice/'+cue+'.wav'+(cue==='miss-slack'?'?v=061':'');}
     function load(cue){
       if(!clips.has(cue)){
@@ -54,7 +54,7 @@ const FishingGuideVoice=(()=>{
     function playMedia(current){
       if(request!==current||doc.hidden||typeof win.Audio!=='function')return;
       if(!media)media=new win.Audio();
-      media.src=clipUrl(current.cue);
+      media.volume=.88;media.src=clipUrl(current.cue);
       media.onended=()=>{if(request===current)showVoice('');};
       media.play().then(()=>{if(request===current&&!media.paused)showVoice(current.cue);})
         .catch(()=>{if(request===current)current.started=false;});
@@ -72,7 +72,10 @@ const FishingGuideVoice=(()=>{
         if(context.state!=='running'){current.started=false;return;}
         const node=context.createBufferSource();
         node.buffer=buffer;
-        node.connect(context.destination);
+        if(!voiceLevel&&context.createGain){
+          voiceLevel=context.createGain();voiceLevel.gain.value=.88;voiceLevel.connect(context.destination);
+        }
+        node.connect(voiceLevel||context.destination);
         node.onended=()=>{
           node.disconnect();
           if(source===node){source=null;showVoice('');}
@@ -94,8 +97,9 @@ const FishingGuideVoice=(()=>{
       activated=true;
       if(!AudioContext){nativeFallback=true;play();return;}
       try{
-        if(!context){context=new AudioContext();onAudioReady(context);}
-        const ready=()=>{nativeFallback=false;onAudioReady(context);play();};
+        if(!context)context=getGameContext?getGameContext():new AudioContext();
+        if(!context){nativeFallback=true;play();return;}
+        const ready=()=>{nativeFallback=false;play();};
         if(context.state==='running')ready();
         else context.resume().then(ready).catch(()=>{nativeFallback=true;play();});
       }catch{nativeFallback=true;play();}
