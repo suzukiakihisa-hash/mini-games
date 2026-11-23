@@ -301,7 +301,8 @@ button{font-weight:650}
  background:transparent;border:2px solid transparent;border-right-color:#c8dfd9;border-bottom-color:#c8dfd9;pointer-events:none;
 }
 #shell[data-phase=Reeling] #primary.reeling.winding{border-color:#ffdc86}
-#shell[data-phase=Reeling] #signal{font-weight:750;line-height:1.27;margin-top:3px}
+#shell[data-phase=Reeling] #signal{font-weight:750;line-height:1.27;margin-top:3px;text-wrap:balance}
+#signal .reel-phrase{display:inline-block}
 #shell[data-phase=Reeling] #signal.danger{color:#fff8eb;background:#98391f;border:2px solid #ffe2a7}
 #shell[data-phase=Reeling] #signal.danger::before{content:'！';color:#fff3c4;font-weight:900;display:inline;margin-right:3px}
 #shell[data-phase=Reeling] #signal.run::before{color:#fff3c4}
