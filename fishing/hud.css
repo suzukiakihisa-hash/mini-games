@@ -307,28 +307,46 @@ button{font-weight:650}
  content:'';position:absolute;inset:8%;width:auto;height:auto;transform:none;border-radius:50%;
  background:transparent;border:2px solid transparent;border-right-color:#c8dfd9;border-bottom-color:#c8dfd9;pointer-events:none;
 }
-#shell[data-phase=Reeling] #primary.reeling.winding{border-color:#ffdc86}
+#shell[data-phase=Reeling] #primary.reeling.winding{border-color:#c5e5cf}
 #shell[data-phase=Reeling] #heading :is(h1,#place){display:none}
 #shell[data-phase=Reeling] #fight{
  position:absolute;width:1px;height:1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap
 }
 #fish-cue{
- position:absolute;z-index:2;pointer-events:none;user-select:none;--edge:18px;
+ position:absolute;z-index:2;pointer-events:none;user-select:none;--edge:48px;
  left:clamp(var(--edge),var(--fish-x,50%),calc(100% - var(--edge)));
  top:var(--fish-top,45%);transform:translate(-50%,calc(-100% - 6px));
- display:flex;align-items:center;gap:4px;padding:2px;border:1.5px solid #fff4d5;border-radius:50%;
- color:#f9ffed;background:#164746;box-shadow:0 2px 4px #102e4080;
+ display:flex;align-items:center;gap:4px;padding:2px 7px 2px 3px;border:1.5px solid #c4f4cf;border-radius:16px;
+ color:#f3fff3;background:#105b33;box-shadow:0 2px 4px #102e4070;
 }
-#fish-cue[data-with-tip=true]{--edge:76px;padding:3px 9px 3px 5px;border-radius:18px}
-#fish-tip{white-space:nowrap;font-size:clamp(13px,3.8vw,16px);line-height:1.22;font-weight:750}
-#fish-cue[data-beat=pause],#fish-cue[data-beat=turn]{background:#835520;color:#fff6ce}
-#fish-cue[data-beat=danger]{background:#962f22;color:#fff9db;border-radius:8px}
-#fish-cue[data-beat=slack]{background:#24626a}
-#fish-cue svg{display:block;flex:none;width:22px;height:22px}
-#fish-cue svg path{display:none}
-#fish-cue[data-direction=left] .cue-turn{transform:translateX(26px) scaleX(-1)}
-#fish-cue[data-beat=wind] .cue-wind,#fish-cue[data-beat=pause] .cue-pause,#fish-cue[data-beat=slack] .cue-slack,
-#fish-cue[data-beat=turn] .cue-turn,#fish-cue[data-beat=danger] .cue-danger{display:block}
+#fish-cue[data-with-tip=true]{--edge:86px}
+#fish-tip{white-space:nowrap;font-size:clamp(12px,3.4vw,15px);line-height:1.2;font-weight:750}
+#fish-distance{white-space:nowrap;font:700 13px/1.3 system-ui,sans-serif;font-variant-numeric:tabular-nums}
+#fish-distance::before{content:"あと";margin-right:2px;font-size:10px;font-weight:500}
+#fish-cue[data-with-tip=true] #fish-distance{padding-left:4px;border-inline-start:1px solid #fff7}
+#fish-cue[data-beat=stop],#fish-cue[data-beat=danger]{background:#992d38;border-color:#ffdbd5;border-radius:9px}
+#fish-cue[data-beat=danger]{outline:2px solid #d4444b;outline-offset:1px}
+#fish-cue svg{display:block;flex:none;width:24px;height:24px}
+#fish-cue :is(.cue-wind,.cue-stop){display:none}
+#fish-cue[data-beat=wind] .cue-wind,#fish-cue:is([data-beat=stop],[data-beat=danger]) .cue-stop{display:block}
+.crank-arm{transform-origin:13px 13px;animation:turn-handle 1.6s linear infinite}
+@keyframes turn-handle{to{transform:rotate(360deg)}}
+#fish-cue[data-beat=danger] .cue-stop{transform-origin:center;animation:brace 1s ease-in-out infinite alternate}
+@keyframes brace{to{transform:scale(.86)}}
+#water-cue{position:absolute;z-index:2;pointer-events:none;left:clamp(50px,var(--water-x),calc(100% - 50px));
+ top:var(--water-y);transform:translate(-50%,calc(-100% - 6px));display:flex;align-items:center;gap:2px;
+ color:#e3fbff;filter:drop-shadow(0 1px 2px #063b4e);font-size:12px;font-weight:700}
+#water-cue svg{width:28px;height:30px;transform:rotate(var(--bearing,0deg));stroke-dasharray:3 3}
+#water-verb{border-radius:4px;background:#154859e8;padding:2px 5px}
+#water-cue[data-worked=true] svg{stroke-dasharray:none}
+#auto-reel{position:absolute;z-index:4;left:calc(env(safe-area-inset-left,0px) + 12px);top:calc(var(--top) + 12px);
+ min-height:46px;border:1px solid #bdd2d0b3;border-radius:24px;background:#163b46ed;color:#fff8e9;padding:7px 12px;font-size:13px}
+#auto-reel[aria-pressed=true]{background:#f7f3df;color:#183840}
+#shell:has(#drawer:not([hidden])) :is(#auto-reel,#water-cue,#pause){visibility:hidden}
+#book-break{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:8px 0;color:#284e51;font-size:14px}
+#drawer #resume-fight{margin:0;background:#24565d;color:white;padding:8px 12px}
+#shell[data-auto-winding=true] #primary.reeling::before{animation:turn-handle .85s linear infinite}
+@media(prefers-reduced-motion:reduce){.crank-arm,#fish-cue[data-beat=danger] .cue-stop,#shell[data-auto-winding=true] #primary.reeling::before{animation:none}}
 #shell:has(#drawer:not([hidden])) #fish-cue{visibility:hidden}
 #shell[data-phase=Reeling] #primary.reeling:not([data-demonstrate=true]){opacity:.70;box-shadow:0 1px 5px #17384750}
 #shell[data-phase=Reeling] #primary.reeling[data-demonstrate=true]::before{animation:crank-example 1.9s ease-in-out infinite}

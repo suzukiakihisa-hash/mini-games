@@ -91,6 +91,6 @@ https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX
 Voice lines, pacing and waveform edits were prepared for this project.
 Only the rendered Japanese clips are in the Web game.
 
-Waterfront music and fishing effects (0.60–0.62)
-The score, splash, geared reel, relaxing and taut fishing line, and landing
+Waterfront music and fishing effects (0.60–0.63)
+The score, splash, geared reel, relaxing and taut fishing line, fish action cues, and landing
 fanfare were composed and synthesized for this game in Tools/render-water-sounds.py.

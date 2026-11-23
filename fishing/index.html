@@ -1,27 +1,27 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>ぼくのつり旅 — 関東の水辺</title>
-<link rel="stylesheet" href="hud.css?v=062"><link rel="preload" as="image" fetchpriority="low" href="outing-fish.png?v=060"></head><body><main id="shell" data-phase="Intro">
+<link rel="stylesheet" href="hud.css?v=063"><link rel="preload" as="image" fetchpriority="low" href="outing-fish.png?v=060"></head><body><main id="shell" data-phase="Intro">
 <div id="view"><canvas id="unity-canvas" tabindex="0" aria-label="歩いて釣り場を探し、魚影を狙うプレー画面"></canvas>
   <div id="fish-cue" hidden aria-hidden="true">
-    <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2.35" stroke-linecap="round" stroke-linejoin="round">
-      <path class="cue-wind" d="M20.6 10.1a8 8 0 1 0-.9 8.1M21 5.2v5.9h-5.9"/>
-      <path class="cue-pause" d="M9 6.6v12.8M17 6.6v12.8" stroke-width="3.7"/>
-      <path class="cue-slack" d="M3.5 9c3 0 3.3 8.5 8.2 8.5s4.6-7.4 10.8-7.4"/>
-      <path class="cue-turn" d="M3.8 17.5c5-1 3.5-8.4 9.3-8.4h7.4m-4.2-4.2 4.6 4.2-4.6 4.3"/>
-      <path class="cue-danger" d="M13 6.5v7.6m0 4.9v.1" stroke-width="3"/>
-    </svg><span id="fish-tip" hidden></span>
-  </div></div>
-<header id="heading"><h1><span id="trip-heading">ぼくのつり旅</span> <small>0.62</small></h1><p id="place"></p><div id="hint-row"><span id="hint-portrait" class="guide-portrait" aria-hidden="true" hidden><img src="guide-portrait.png" alt="" width="144" height="144"><i></i></span><div class="guide-line"><span id="hint-speaker" class="speaker" hidden>あんない役</span><p id="hint">水辺を準備しています</p></div></div><div id="signal" hidden aria-hidden="true"></div><p id="warning" hidden></p></header>
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <g class="cue-wind"><path d="M20.6 15a8 8 0 1 1-3-8.4m-3.5.9 4-.4-.7-3.7"/><g class="crank-arm"><path d="M13 13 9 17"/><circle cx="13" cy="13" r="1.4" fill="currentColor"/><circle cx="8" cy="18" r="2.6" fill="currentColor"/></g></g>
+      <path class="cue-stop" fill="currentColor" stroke-width=".8" d="M7.4 13.8V7.2a1.2 1.2 0 0 1 2.4 0v4.4h.8V4.9a1.2 1.2 0 1 1 2.4 0v6.2h.8V4a1.2 1.2 0 0 1 2.4 0v7.1h.8V6a1.2 1.2 0 0 1 2.4 0v9.8c0 4-1.8 7-5.3 7h-1.6c-2.1 0-3.4-.9-4.8-2.9L4.5 15c-1.1-1.7.6-3.1 1.9-1.9l2.2 2Z"/>
+    </svg><span id="fish-tip" hidden></span><span id="fish-distance"></span>
+  </div>
+  <div id="water-cue" hidden aria-hidden="true"><svg viewBox="0 0 34 40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 32c-11-7 9-12 1-19V6m-5 5 5-6 5 6" stroke-width="3"/><circle cx="16" cy="32" r="2" fill="currentColor" stroke="none"/></svg><span id="water-verb"></span></div>
+</div>
+<header id="heading"><h1><span id="trip-heading">ぼくのつり旅</span> <small>0.63</small></h1><p id="place"></p><div id="hint-row"><span id="hint-portrait" class="guide-portrait" aria-hidden="true" hidden><img src="guide-portrait.png" alt="" width="144" height="144"><i></i></span><div class="guide-line"><span id="hint-speaker" class="speaker" hidden>あんない役</span><p id="hint">水辺を準備しています</p></div></div><div id="signal" hidden aria-hidden="true"></div><p id="warning" hidden></p></header>
 <div id="first-step" aria-hidden="true" hidden><span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 14V6a1.6 1.6 0 0 1 3.2 0v5l1-.5 2 .7 2 .7 2 .8c1.1.6 1.4 1.6 1.1 3.1l-.6 3.3c-.4 1.8-1.6 2.8-3.4 2.8H12c-1.4 0-2.4-.6-3.2-1.5L4 15c-.9-1.3.6-3 1.9-2.1L8 14Z"/><path d="M2 10l5-6M3 4h4v4"/></svg>指をすべらせる</span></div>
 <button id="cast-target" type="button" aria-label="魚のそばに投げる" hidden>
   <span class="cast-frame" aria-hidden="true"></span>
   <span class="cast-tag" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M8 9V5.5a1.7 1.7 0 0 1 3.4 0v5l1-.5a1.6 1.6 0 0 1 2.1.8 1.7 1.7 0 0 1 2.8.8c1.9-.5 3 .6 2.8 2.2l-.5 4c-.3 2.3-2.4 3.7-4.5 3.7h-2.3c-1.7 0-2.7-.5-3.7-1.7l-4.2-5.2c-.9-1.3.5-3.1 1.9-2.1L8 14.3V9Z"/><path d="M4 6.3a5.9 5.9 0 0 1 11.4-1.7"/></svg><span id="cast-verb">なげる</span></span>
 </button>
+<button id="auto-reel" type="button" aria-label="リールをおまかせ" aria-pressed="false" hidden>リールを おまかせ</button>
 <button id="menu" type="button" disabled aria-expanded="false" aria-controls="drawer">手帳 · ひと休み</button>
 <p id="action-status" role="status" aria-atomic="true" class="sr-only"></p><div id="pause" hidden>釣りをひと休み</div>
-<section id="drawer" hidden aria-label="旅の手帳とひと休み"><h2>旅の手帳</h2><div id="book-tabs" role="tablist" aria-label="手帳のページ"><button id="records-tab" role="tab" aria-selected="true" aria-controls="records-page">記録</button><button id="learn-tab" role="tab" aria-selected="false" aria-controls="learn-page">魚・学び</button><button id="map-tab" role="tab" aria-selected="false" aria-controls="map-page">行き先</button><button id="gear-tab" role="tab" aria-selected="false" aria-controls="gear-page">どうぐ</button></div><div id="records-page" role="tabpanel" aria-labelledby="records-tab"><p id="record-summary">まだ記録はありません</p><details id="supper-book"><summary>おうちの料理帳</summary><ul id="meals"></ul></details><p id="learning-record"></p><pre id="records"></pre><details><summary>水辺ごとの記録</summary><p id="region-totals"></p><p>前の版の釣果は、場所が記録されていないため地域別には数えていません。総釣果と最大記録には残ります。</p></details><button id="retrieve">投げ直す</button><button id="walk">歩いて釣り場をさがす</button><button id="sound" aria-label="ゲームの音" aria-pressed="true">音を消す</button><button id="guide-toggle" type="button" aria-label="案内役の声" aria-pressed="true">案内役の声　あり</button><button id="export">記録の控えを保存</button><button id="finish-trip" hidden>今日は帰る · ふりかえり</button>
+<section id="drawer" hidden aria-label="旅の手帳とひと休み"><h2>旅の手帳</h2><div id="book-break" hidden><span>魚も ひと休み中</span><button id="resume-fight" type="button">つりを つづける</button></div><div id="book-tabs" role="tablist" aria-label="手帳のページ"><button id="records-tab" role="tab" aria-selected="true" aria-controls="records-page">記録</button><button id="learn-tab" role="tab" aria-selected="false" aria-controls="learn-page">魚・学び</button><button id="map-tab" role="tab" aria-selected="false" aria-controls="map-page">行き先</button><button id="gear-tab" role="tab" aria-selected="false" aria-controls="gear-page">どうぐ</button></div><div id="records-page" role="tabpanel" aria-labelledby="records-tab"><p id="record-summary">まだ記録はありません</p><details id="supper-book"><summary>おうちの料理帳</summary><ul id="meals"></ul></details><p id="learning-record"></p><pre id="records"></pre><details><summary>水辺ごとの記録</summary><p id="region-totals"></p><p>前の版の釣果は、場所が記録されていないため地域別には数えていません。総釣果と最大記録には残ります。</p></details><button id="retrieve">投げ直す</button><button id="walk">歩いて釣り場をさがす</button><button id="sound" aria-label="ゲームの音" aria-pressed="true">音を消す</button><button id="guide-toggle" type="button" aria-label="案内役の声" aria-pressed="true">案内役の声　あり</button><button id="export">記録の控えを保存</button><button id="finish-trip" hidden>今日は帰る · ふりかえり</button>
 <details><summary>おとなと読む · 水辺のやくそく</summary><p>救命具をつけよう。投げる前は、うしろを見よう。糸とごみは持ち帰ろう。</p><p>魚を返すときは、ぬれた手ですばやく水へ。持ち帰るときは保冷して、料理は大人といっしょに。</p></details>
-<details><summary>あそび方</summary><p>好きなところに指をおき、魚印の方へすべらせる。はなすと止まる。魚のかげをタップして投げる。ウキがしずんだら合わせよう。</p><p>魚がこちらを向いたら、画面の下で指をくるくる。左でも右でも、指を往復させても巻けるよ。魚が横に走ったら手を止めよう。糸がふわっとたるむよ。</p></details>
+<details><summary>あそび方</summary><p>好きなところに指をおき、魚印の方へすべらせる。はなすと止まる。魚のかげをタップして投げる。ウキがしずんだら合わせよう。</p><p>魚がこちらを向いたら、画面の好きなところで指をくるくる。指を往復させても巻けるよ。魚が横に走ったら手を止めよう。糸がふわっとたるむよ。</p></details>
 <details><summary>素材とクレジット</summary><p>案内役の全身・髪・服・靴・表情の元データ：<a href="https://studio.blender.org/characters/snow/v4/" target="_blank" rel="noopener noreferrer">Snow Rig (CC) Blender Foundation | studio.blender.org</a>／<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>。案内役用の軽量な骨格、表情の焼き込み、共通画像へ加工しました。主人公と救命胴衣・浮きは本作で制作しています。</p><p>空・地面・岩：<a href="https://polyhaven.com/license" target="_blank" rel="noopener noreferrer">Poly Haven（CC0）</a>。旧人物の保持資料はMakeHuman Community / MPFBとMika Suominen（CC0）です。</p><p>魚の写真：Izuzuki「<a href="https://commons.wikimedia.org/wiki/File:MaAji.jpg" target="_blank" rel="noopener noreferrer">MaAji.jpg</a>」／<a href="https://creativecommons.org/licenses/by/2.5/" target="_blank" rel="noopener noreferrer">CC BY 2.5</a>。3D形状への投影・縮小・色と光の調整をしています。素材の作者が本作を推奨する意味ではありません。</p><p><a href="CREDITS.txt" target="_blank" rel="noopener noreferrer">出典と改変の一覧</a></p></details>
 </div>
 <div id="learn-page" role="tabpanel" aria-labelledby="learn-tab" hidden><section id="species-library"><h3 id="species-total">わたしの魚ずかん</h3><label for="album-water">水辺でさがす</label><select id="album-water"></select><p id="album-progress"></p><div id="species-list"></div></section><details><summary>釣って覚えたこと</summary><p id="field-note-count"></p><ul id="field-notes"></ul><h3 id="fish-book-title">わたしの魚ずかん</h3><p id="fish-memory"></p><label for="catch-memories">最近の釣果から、1匹えらぼう</label><select id="catch-memories" aria-label="ふりかえる釣果"></select><p id="catch-story"></p>
@@ -49,9 +49,9 @@
 <div id="first-fish" hidden><svg class="aji-detail" viewBox="0 0 72 38" width="62" height="34" aria-label="金色の列がぜいご" role="img"><path d="M6 17Q14 4 30 7Q43 8 53 18L68 9L63 19L68 29L53 21Q24 38 6 21Z" fill="#a1c4c2" stroke="#315c61" stroke-width="1.5"/><path d="M19 9q6 8 0 16M25 17l10 5-8-7" fill="none" stroke="#4a7473"/><circle cx="14" cy="15" r="2" fill="#24454d"/><path d="m34 19 4-3 2 4-4 2zm7 0 4-3 2 4-4 2zm7 0 4-2 2 3-4 2z" fill="#f8be4c" stroke="#85531d" stroke-width="1"/></svg><svg class="dace-detail" viewBox="0 0 72 38" width="62" height="34" aria-label="ウグイの背びれ" role="img"><path d="M5 20q12-11 28-9 13 0 21 7l13-6-4 8 4 7-14-5q-22 9-46 0Z" fill="#bcc4a9" stroke="#587058"/><path d="m31 12 4-8 5 3 3 7z" fill="#e4b34e" stroke="#806d3b"/><path d="M18 18q16-3 35 2" fill="none" stroke="#677657"/><circle cx="12" cy="17" r="1.7" fill="#293d34"/></svg><span><strong id="species-feature">ぜいご</strong><br><span id="species-tip">しっぽのそばの かたい うろこ</span></span></div></div>
 <div id="catch-ruler" aria-hidden="true"><div class="ruler-track"><b></b><em id="best-mark" hidden></em><i></i><span>0</span><span>5</span><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span></div></div>
 <div id="decisions"><button id="release">海へリリース</button><button id="keep">持ち帰る</button><button id="sell">市場で売る</button></div></div>
-<div id="fight" hidden><div id="fight-line"><span id="fight-cue">糸のはり</span><span id="distance"></span></div><div id="load" role="meter" aria-label="糸の張り" aria-valuemin="0" aria-valuemax="100"><span></span></div></div>
+<div id="fight" class="sr-only" hidden><div id="fight-line"><span id="fight-cue">糸のはり</span><span id="distance"></span></div><div id="load" role="meter" aria-label="糸の張り" aria-valuemin="0" aria-valuemax="100"><span></span></div></div>
 <button id="explore-again" hidden>歩いてさがす</button><label id="cast-depth" hidden><span id="depth-memory"></span><select id="cast-depth-choice" aria-label="次の一投のタナ"><option value="2">タナ　2 m</option><option value="4">タナ　4 m</option><option value="6">タナ　6 m</option></select></label><button id="primary" disabled>読みこみ中</button></section>
-</main><script src="controls.js?v=062"></script><script src="feedback.js?v=062"></script><script src="notebook.js?v=062"></script><script src="water-audio.js?v=062"></script><script src="guide-voice.js?v=062"></script><script>
+</main><script src="controls.js?v=063"></script><script src="feedback.js?v=063"></script><script src="notebook.js?v=063"></script><script src="water-audio.js?v=063"></script><script src="guide-voice.js?v=063"></script><script>
 'use strict';
 const $=id=>document.getElementById(id),shell=$('shell');
 const ui={primary:$('primary'),canvas:$('unity-canvas'),menu:$('menu'),drawer:$('drawer'),sound:$('sound'),retrieve:$('retrieve'),export:$('export'),keep:$('keep'),release:$('release'),sell:$('sell'),outfit:$('outfit-shortcut'),walk:$('walk'),exploreAgain:$('explore-again'),help:$('depth-help'),finish:$('finish-trip'),returnHome:$('return-home'),depths:Array.from($('depths').children),tabs:['records','learn','map','gear'].map(x=>$(x+'-tab')),pages:['records','learn','map','gear'].map(x=>$(x+'-page')),regionButtons:[0,1,2,3,4,5,6].map(x=>$('region-'+x)),markers:[0,1,2,3,4,5,6].map(x=>$('pin-'+x)),lessonButtons:[0,1,2,3].map(x=>$('lesson-'+x)),fishPartButtons:[0,1,2].map(x=>$('fish-part-'+x)),memories:$('catch-memories'),fishNote:$('fish-part-note'),fishScutes:$('fish-scutes')};
@@ -100,8 +100,8 @@ $('guide-toggle').addEventListener('click',()=>{
   try{window.localStorage?.setItem(voiceSetting,guideEnabled?'on':'off');}catch{}
   if(!guideEnabled)guide?.setCue('');
 });
-const fishCue=$('fish-cue'), fishTip=$('fish-tip');
-let madeFirstTurn=false, lastFishX=-2, lastFishY=-2, lastFishTop=-2;
+const fishCue=$('fish-cue'), fishTip=$('fish-tip'), fishDistance=$('fish-distance'), waterCue=$('water-cue');
+let practised=0, lastFishX=-2, lastFishY=-2, lastFishTop=-2;
 window.FishingFishPosition=(x,y,top)=>{
   if(report?.phase!=='Reeling'||report.paused)return;
   const positionedFish=x>0&&x<1&&y>0&&y<1&&top>.04&&top<=y;
@@ -118,7 +118,7 @@ const layoutObserver=new ResizeObserver(()=>{resize();frameHud();});
 for(const node of [shell,$('heading'),$('panel'),ui.menu])layoutObserver.observe(node);
 window.addEventListener('resize',viewportResize);window.visualViewport?.addEventListener('resize',viewportResize);resize();
 ui.castTarget=$('cast-target');ui.nextQuest=$('next-quest');ui.outings=$('outing-board');ui.spots=$('visited-spots');ui.shoreKey=$('shore-key');
-ui.castDepth=$('cast-depth-choice');
+ui.castDepth=$('cast-depth-choice');ui.autoReel=$('auto-reel');ui.resumeFight=$('resume-fight');
 const shorePixels=[[[62,24],[116,50],[180,24]],[[46,52],[140,67],[238,66]],[[45,23],[150,23],[248,23]],[[47,53],[147,70],[255,97]],[[69,64],[142,51],[216,45]],[[58,65],[151,73],[240,76]],[[144,18],[121,52],[130,89]]];
 const shoreNames=['本牧　護岸から橋をわたり、沖の桟橋へ','横須賀　猿島を見ながら 海ぞいの遊歩道へ','市原　長い橋の先で 左右の桟橋にわかれる','多摩川　丸石の河原と 下流へつづく流れ','丹沢湖　山にかこまれた入り江と 永歳橋','相模湾　烏帽子岩を沖に見て 群れをさがす','コナ沖　黒い溶岩の海岸にそって 船を流す'];
 let shoreKey='',drawnRegion=-1,walkedRegion=-1;
@@ -146,7 +146,8 @@ window.FishingTelemetry=value=>{
  }else if(report && report.sound!==value.sound){
    try{window.localStorage?.setItem(soundSetting,value.sound?'on':'off');}catch{}
  }
- const phaseChanged=report?.phase!==value.phase;
+ const previousReport=report;
+ const phaseChanged=previousReport?.phase!==value.phase;
  report=value;shell.dataset.guided=String(!!value.guided);shell.setAttribute('data-phase',value.phase);shell.setAttribute('data-phase-age',String(value.phaseAge??0));if(bootSeconds===null)bootSeconds=(performance.now()-bootAt)/1000;
  shell.classList.toggle('staged',value.phase!=='Intro'&&value.phase!=='Explore');
  if(value.phase==='Explore'&&value.walking)walkedRegion=value.region??0;
@@ -254,14 +255,21 @@ window.FishingTelemetry=value=>{
    if(value.trophy)setText($('catch-name'),'ヌシ級！ '+species);
  }
  const fighting=value.phase==='Reeling';ui.primary.classList.toggle('reeling',fighting);$('fight').hidden=!fighting||value.paused;
+ ui.autoReel.hidden=!fighting||value.paused;ui.autoReel.setAttribute('aria-pressed',String(!!value.autoReel));
+ setText(ui.autoReel,value.autoReel?'おまかせ中 · やめる':'リールを おまかせ');
+ $('book-break').hidden=!(fighting&&value.paused);
+ shell.dataset.autoWinding=String(!!(fighting && value.autoReel && value.held && !value.paused));
  const signal=FishingFeedback.describe(value),badge=$('signal');
  shell.dataset.lessonStep=String(value.guided?value.lessonStep||0:0);
- if(!fighting || phaseChanged)madeFirstTurn=false;
- if(fighting && value.held)madeFirstTurn=true;
- const cue=FishingFeedback.fishCue(value,signal,madeFirstTurn);
+ if(!fighting || phaseChanged)practised=0;
+ if(fighting && value.guided && !value.autoReel && !value.paused && previousReport?.lessonStep===value.lessonStep){
+   if(value.fightCue==='wind' && value.held && value.distance<previousReport.distance ||
+      value.fightCue!=='wind' && !value.held && value.tension<previousReport.tension)practised|=1<<value.lessonStep;
+ }
+ const cue=FishingFeedback.fishCue(value,practised);
  fishCue.dataset.beat=cue.beat;fishCue.dataset.withTip=String(!!cue.tip);
- fishCue.dataset.direction=value.runDirection<0?'left':'right';
  fishTip.hidden=!cue.tip;setText(fishTip,cue.tip);
+ if(fighting)setText(fishDistance,Math.max(0,value.distance).toFixed(1)+' m');
  ui.primary.dataset.demonstrate=String(cue.demo);
  if(fighting&&!value.paused){
    window.FishingFishPosition(value.fishX,value.fishY,value.fishTopY);
@@ -269,28 +277,35 @@ window.FishingTelemetry=value=>{
    fishCue.hidden=true;lastFishX=lastFishY=lastFishTop=-2;
    shell.dataset.fishX=shell.dataset.fishY=shell.dataset.fishTopY='-1';
  }
+ const waterPoint=value.floatScreen;
+ const workWater=value.phase==='Waiting' && !!value.waterAction && !value.paused;
+ waterCue.hidden=!workWater || !waterPoint || !(waterPoint.x>.04 && waterPoint.x<.96 && waterPoint.y>.12 && waterPoint.y<.82);
+ if(!waterCue.hidden){
+   waterCue.style.setProperty('--water-x',(waterPoint.x*100).toFixed(2)+'%');
+   waterCue.style.setProperty('--water-y',(waterPoint.y*100).toFixed(2)+'%');
+   waterCue.style.setProperty('--bearing',(value.waterBearing||0).toFixed(1)+'deg');
+   waterCue.dataset.worked=String(value.rigLift>.04);setText($('water-verb'),value.waterAction);
+ }
  badge.hidden=fighting||!signal.visible||value.catchReady;
  if(!badge.hidden){badge.className=signal.kind;setText(badge,signal.text);}
- $('hint-row').hidden=fighting||signal.visible||value.catchReady||!firstStep.hidden;
+ $('hint-row').hidden=fighting||!waterCue.hidden||signal.visible||value.catchReady||!firstStep.hidden;
  // Match the shore marking to the main action, then show what the thumb does there.
  const gesture=value.paused?'':value.phase==='Explore'&&value.nearFishing?'float':
-   ['Preparing','Aim'].includes(value.phase)?'cast':value.phase==='Nibble'&&value.strikeReady?'lift':['Waiting','Nibble'].includes(value.phase)?'float':
+   ['Preparing','Aim'].includes(value.phase)?'cast':value.phase==='Nibble'&&value.strikeReady?'lift':workWater?'water':['Waiting','Nibble'].includes(value.phase)?'float':
    value.phase==='Bite'?'lift':fighting?(signal.action==='ease'||signal.action==='rest'?'open':'wind'):
    value.phase==='AfterCatch'&&value.button==='ここで もう一投'?'cast':'';
  ui.primary.setAttribute('data-gesture',gesture);
  const primaryLabel=fighting?'リール':value.phase==='Explore'&&value.canPrepare?'ここで\n釣る準備':value.phase==='Aim'?'おまかせで なげる':value.button;
  if(ui.primary.textContent!==primaryLabel)ui.primary.textContent=primaryLabel;
- if(fighting)ui.primary.setAttribute('aria-label','リール。くるくる動かして巻く。止めるとゆるむ。');
+ if(fighting)ui.primary.setAttribute('aria-label','リール。好きなところで指を回すと巻く。止めるとゆるむ。');
  else ui.primary.removeAttribute('aria-label');
  ui.primary.classList.toggle('pull',signal.action==='ease'||signal.kind==='danger');
  const announcement=value.paused?'ひと休み中':signal.visible?signal.text:speaking?'あんない役。'+hint:hint;
  const status=$('action-status');if(status.textContent!==announcement)status.textContent=announcement;
  ui.primary.classList.toggle('strike',signal.action==='strike');ui.primary.classList.toggle('ease',signal.action==='ease');
- const steer=signal.kind==='warning'&&value.held&&value.runDirection;
- setText($('fight-cue'),signal.kind==='danger'?'糸が ぴん！':steer?(value.counterSteering?'いい向き！':value.runDirection<0?'右へ すべらせる →':'← 左へ すべらせる'):'糸のはり');
- $('fight').classList.toggle('steering',!!steer);
+ setText($('fight-cue'),signal.text);
  setText($('distance'),`あと ${Math.max(0,value.distance||0).toFixed(1)} m`);
- const load=Math.min(100,Math.round((value.tension||0)*100));$('load').setAttribute('aria-valuenow',String(load));$('load').firstElementChild.style.width=`${load}%`;$('load').firstElementChild.style.background=signal.kind==='danger'?'#a93823':load>65?'#865015':'#2d7468';
+ const load=Math.min(100,Math.round((value.tension||0)*100));$('load').setAttribute('aria-valuenow',String(load));
  $('pause').hidden=!value.paused;
  setText($('record-summary'),`記録 ${value.landed}匹 · 持ち帰り ${value.kept} · リリース ${value.released} · 売った ${value.sold||0}`);
  setText($('records'),value.records||'最初の1匹を釣ってみよう');
@@ -303,7 +318,7 @@ window.FishingTelemetry=value=>{
  if(phaseChanged)frameHud();
 };
 window.FishingExport=value=>{const blob=new Blob([value],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='fishing-unity-record.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
-const config={dataUrl:'Build/Fishing-20261123-131748.data',frameworkUrl:'Build/Fishing-20261123-131748.framework.js',codeUrl:'Build/Fishing-20261123-131748.wasm',streamingAssetsUrl:'StreamingAssets',companyName:'Hmx12Personal',productName:'BokuNoTsuriTabiMobile',productVersion:'0.62',devicePixelRatio:Math.min(window.devicePixelRatio||1,1.5,Math.sqrt(750000/Math.max(1,(window.innerWidth||390)*(window.visualViewport?.height||window.innerHeight||844)))),matchWebGLToCanvasSize:true,autoSyncPersistentDataPath:true,showBanner:(message,type)=>{if(type==='error'){$('hint').textContent='起動できませんでした';$('warning').hidden=false;$('warning').textContent=message;ui.primary.disabled=true;}}};
+const config={dataUrl:'Build/Fishing-20261123-142553.data',frameworkUrl:'Build/Fishing-20261123-142553.framework.js',codeUrl:'Build/Fishing-20261123-142553.wasm',streamingAssetsUrl:'StreamingAssets',companyName:'Hmx12Personal',productName:'BokuNoTsuriTabiMobile',productVersion:'0.63',devicePixelRatio:Math.min(window.devicePixelRatio||1,1.5,Math.sqrt(750000/Math.max(1,(window.innerWidth||390)*(window.visualViewport?.height||window.innerHeight||844)))),matchWebGLToCanvasSize:true,autoSyncPersistentDataPath:true,showBanner:(message,type)=>{if(type==='error'){$('hint').textContent='起動できませんでした';$('warning').hidden=false;$('warning').textContent=message;ui.primary.disabled=true;}}};
 function showReconnect(){
   setText($('hint'),'読みこみが とぎれたよ');
   setText(ui.primary,'つなぎなおす');ui.primary.disabled=false;
@@ -311,7 +326,7 @@ function showReconnect(){
 }
 function startPlayer(){
   attachAudio();
-  const loader=document.createElement('script');loader.src='Build/Fishing-20261123-131748.loader.js';loader.onerror=showReconnect;
+  const loader=document.createElement('script');loader.src='Build/Fishing-20261123-142553.loader.js';loader.onerror=showReconnect;
   loader.onload=()=>createUnityInstance(ui.canvas,config,p=>{$('hint').textContent=`水辺を準備 ${Math.round(p*100)}%`;}).then(instance=>{engine=instance;soundReady=true;
  if(restoreMuted && initialEngineSound)instance.SendMessage('FishingMobileGame','ToggleSound');
  frameHud();controls=FishingControls.attach(engine,ui,{document,window});FishingOutfit.connect($,command=>engine.SendMessage('FishingMobileGame','Gear',command));ui.menu.disabled=false;if(report)controls.update(report);if(document.hidden)instance.SendMessage('FishingMobileGame','Suspend');}).catch(error=>{$('hint').textContent='起動できませんでした';$('warning').hidden=false;$('warning').textContent=String(error);});document.body.appendChild(loader);
@@ -329,7 +344,7 @@ else{
   setText($('hint'),'水辺に つなぎなおしているよ');
   const reloadPart=([name,ready])=>new Promise((resolve,reject)=>{
     const script=document.createElement('script');
-    script.src=name+'?v=062&retry=1';
+    script.src=name+'?v=063&retry=1';
     script.onload=()=>ready()?resolve():reject();
     script.onerror=reject;document.body.appendChild(script);
   });

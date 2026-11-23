@@ -1,16 +1,17 @@
 'use strict';
 // Pre-rendered original music and foley. The audio device advances the loops between Unity frames.
 const FishingWaterAudio=(()=>{
-  const url=name=>'water-sounds/'+name+'.mp3?v=062';
+  const url=name=>'water-sounds/'+name+'.mp3?v=063';
+  const fightClips=new Map([['wind','turn'],['stop','brake'],['danger','alarm']]);
   // Brief silent PCM for arming reusable media elements inside the actual input event.
   const silence='data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQQAAAAAAAAA';
   const musicName=region=>region>=5?'offshore':region===4?'lake':region===3?'river':'harbor';
   function attach(win,doc){
     let context, state, away=false, speaking=false, primed=false, previewPending=false, previewUntil=0;
-    let fallback=false, lastPhase='', output, lastEase=-Infinity;
+    let fallback=false, lastPhase='', output, lastEase=-Infinity, lastCue='', warnedRun=false;
     const clips=new Map(), slots=new Map(), nativePlayers=new Map();
     const authorizedMedia=new WeakSet(),pendingMedia=new WeakSet();
-    const nativeGroup=key=>['music','reel','strain'].includes(key)?key:'effect';
+    const nativeGroup=key=>['music','reel','strain','decision'].includes(key)?key:'effect';
     function permitted(){return !!state?.sound && !doc.hidden && !away;}
     function stop(key){
       const slot=slots.get(key); if(!slot)return;
@@ -33,6 +34,8 @@ const FishingWaterAudio=(()=>{
     function volume(key){
       if(key==='music')return speaking ? .50 : state?.phase==='Reeling' ? .54 : .98;
       if(key==='net')return speaking ? .56 : .98;
+      if(key==='decision')return 1;
+      if(key==='strike' && state?.fightCue==='wind')return .75;
       return key==='strain' ? .84 : key==='reel' ? .96 : .94;
     }
     function setLevel(key,slot){
@@ -99,14 +102,16 @@ const FishingWaterAudio=(()=>{
         if(reel?.node)reel.node.playbackRate.value=speed;
         if(reel?.media)reel.media.playbackRate=speed;
       }else stop('reel');
-      if(state.phase==='Reeling'&&state.held&&(state.lineDanger||state.tension>=.74||state.pulling&&state.tension>=.56))
-        start('strain','strain',true);
+      // The first fish gives time to stop. A taut-line warning before the taught danger cue contradicts that grace.
+      const strained=state.guided&&fightClips.has(state.fightCue) ? state.fightCue==='danger' :
+        state.lineDanger||state.tension>=.74||state.pulling&&state.tension>=.56;
+      if(state.phase==='Reeling'&&state.held&&strained)start('strain','strain',true);
       else stop('strain');
     }
     function warm(){
       if(!primed||!state?.sound)return;
       const names=state.phase==='Intro'||state.phase==='Explore'?[musicName(state.region||0),'splash']:
-        ['Preparing','Aim','Casting'].includes(state.phase)?['splash','bite','strike','reel','ease','strain','landed']:[];
+        ['Preparing','Aim','Casting'].includes(state.phase)?['splash','bite','strike','reel','ease','strain','landed',...fightClips.values()]:[];
       if(!context||fallback){
         for(const key of ['reel','strain']){
           const media=nativePlayers.get(key);
@@ -125,7 +130,7 @@ const FishingWaterAudio=(()=>{
     }
     function primeMedia(){
       if(typeof win.Audio!=='function')return;
-      for(const group of ['music','reel','strain','effect']){
+      for(const group of ['music','reel','strain','decision','effect']){
         const media=nativePlayers.get(group)||new win.Audio();
         nativePlayers.set(group,media);
         if(authorizedMedia.has(media)||pendingMedia.has(media))continue;
@@ -178,7 +183,15 @@ const FishingWaterAudio=(()=>{
     }
     function update(value){
       const previous=lastPhase, changed=previous!==value.phase, wasWinding=state?.held && !state.paused && state.sound;
+      const cue=value.phase!=='Reeling' ? '' : fightClips.has(value.fightCue) ? value.fightCue : lastCue;
+      const cueChanged=cue!==lastCue;
+      const announce=cueChanged&&(cue==='wind'||cue==='stop'&&lastCue!=='danger'||cue==='danger'&&!warnedRun);
+      if(cue==='wind'||!cue)warnedRun=false;
+      if(cue==='danger')warnedRun=true;
+      // Consume transitions even with the notebook open or sound off. Returning must not replay an old instruction.
+      lastCue=cue;
       state=value;lastPhase=value.phase;
+      if(cueChanged&&(!cue||announce))stop('decision');
       if(!permitted()){allStop();return;}
       sync();
       if(previewPending && value.sound && Date.now()<previewUntil){
@@ -196,6 +209,7 @@ const FishingWaterAudio=(()=>{
         if(value.phase==='Reeling')start('strike','strike');
         if(value.phase==='Landing')start('net','landed');
       }
+      if(announce)start('decision',fightClips.get(cue));
     }
     function preview(){
       // The Unity acknowledgement follows this genuine button click; don't sound a toggle-off.

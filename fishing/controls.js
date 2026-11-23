@@ -80,9 +80,6 @@ globalThis.FishingControls = {
       on(target,'pointerdown',event=>{
         if(target===ui.canvas&&!workingWater()&&!sinkingFloat()&&!['Bite','Reeling'].includes(state?.phase))return;
         if(!started||locked()||ui.primary.disabled||active!==null||movePointer!==null||moveKeys.size>0||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;
-        if(target===ui.canvas&&state.phase==='Reeling'){
-          const rect=target.getBoundingClientRect();if(event.clientY<rect.top+rect.height*.36)return;
-        }
         event.preventDefault();active=event.pointerId;pressTarget=target;lastRod=0;
         reelPoint={x:event.clientX,y:event.clientY};
         target.setPointerCapture?.(active);
@@ -179,6 +176,15 @@ globalThis.FishingControls = {
     }
     function page(index){ui.tabs?.forEach((b,j)=>b.setAttribute('aria-selected',String(index===j)));ui.pages?.forEach((p,j)=>p.hidden=index!==j);ui.drawer.scrollTop=0;}
     on(ui.menu,'click',()=>{if(!started||background)return;release();menu=!menu;ui.drawer.hidden=!menu;const catchBook=menu&&['Catch','AfterCatch','TripEnd'].includes(state?.phase)&&!!state?.selectedCatchId;if(catchBook)page(1);else if(menu&&state?.phase==='Explore'&&state?.manualWalking)page(2);send(menu?(catchBook?'OpenCatchBook':'OpenMenu'):'CloseMenu');ui.menu.setAttribute('aria-expanded',String(menu));sync();});
+    if(ui.autoReel)on(ui.autoReel,'click',()=>{
+      if(locked()||state.phase!=='Reeling')return;
+      release();send('ToggleAutoReel');
+    });
+    if(ui.resumeFight)on(ui.resumeFight,'click',()=>{
+      if(!menu||background||state?.phase!=='Reeling')return;
+      menu=false;ui.drawer.hidden=true;ui.menu.setAttribute('aria-expanded','false');
+      send('CloseMenu');ui.menu.focus?.({preventScroll:true});sync();
+    });
     on(ui.sound,'click',()=>send('ToggleSound'));
     on(ui.retrieve,'click',()=>{if(!background){menu=false;ui.drawer.hidden=true;ui.menu.setAttribute('aria-expanded','false');send('CloseMenu');send('Retrieve');sync();}});
     on(ui.export,'click',()=>send('ExportSave'));
